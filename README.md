@@ -1,6 +1,3 @@
-
-  
-
 # health-monitoring
 
   
@@ -23,8 +20,9 @@
 "SMTP_SERVER": "smtp.gmail.com", # depending on service used
 "SMTP_PORT": 465, # depending on service configd
 "MAX_RETRY_ATTEMPTS": 4,
-"SITE_NAME": "test" # in order to uniquely id graph and metric folders
-"MAX_FOLDER_SIZE": 1000 # in mb to determine max size of graph for each site
+"SITE_NAME": "test", # in order to uniquely id graph and metric folders
+"MAX_FOLDER_SIZE": 1000,# in mb to determine max size of graph for each site
+"MAXIMUM_NO_OF_ALARM_STATE_TRIGGERS": 5 # the number of triggers in the last 10 iterations that will set off an alert.
 }
 ```
 
@@ -64,3 +62,9 @@ venv\Scripts\activate
 ***
 
 # Third-Party Libraries
+
+* `plotly` - Declarative charting library.
+
+* `kaleido` - library for generating static images.
+
+* `requests` - HTTP client library for the Python.

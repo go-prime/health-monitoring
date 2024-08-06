@@ -27,11 +27,11 @@ if not MAILER_EMAIL or not MAILER_PASSWORD:
     raise ValueError("Mailer email or password not provided in config file")
 
 
-def send_email(recipients, subject, body, image_path=None):
+def send_email(recipients, subject, body, attachments=None):
     logging.info(f"Sending email to {', '.join(recipients)}")
     logging.info(f"Subject: {subject}")
     logging.info(f"Body: {body}")
-    logging.info(f"Image: {image_path}")
+    logging.info(f"Images Attached No: {len(attachments)}")
     msg = MIMEMultipart()
     msg['From'] = MAILER_EMAIL
     msg['To'] = ', '.join(recipients)
@@ -39,12 +39,18 @@ def send_email(recipients, subject, body, image_path=None):
 
     msg.attach(MIMEText(body, 'plain'))
 
-    if image_path:
-        logging.info("Adding image to email")
-        with open(image_path, 'rb') as f:
-            image_data = f.read()
-            image = MIMEImage(image_data, name=os.path.basename(image_path))
-            msg.attach(image)
+    for image_path in attachments:
+        if not image_path:
+            logging.warning("Invalid image path provided")
+            continue
+        if os.path.exists(image_path):
+            logging.info("Adding image to email")
+            with open(image_path, 'rb') as f:
+                image_data = f.read()
+                image = MIMEImage(image_data, name=os.path.basename(image_path))
+                msg.attach(image)
+        else:
+            logging.warning(f"Image file not found: {image_path}")
 
     with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as smtp:
         logging.info("Logging in to SMTP server")
