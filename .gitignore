@@ -164,4 +164,5 @@ cython_debug/
 # Config file
 config.json
 ping_results.json
+hardware_metrics.json
 exports/
