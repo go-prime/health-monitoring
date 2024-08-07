@@ -1,8 +1,10 @@
 # health-monitoring
 
-  
+# System no comprises of three primary functions
 
-  
+1. Ping (Network Availability Monitoring)- attempts to connect to specified ip PING_URL in conf/config.json
+2. Hardware (Metric Monitoring CPU Usage, Disk Usage, Ram Usage)
+3. Reporting
 
 # Add config file
 
@@ -55,11 +57,53 @@ venv\Scripts\activate
 
 `python -m pip install -r requirments.txt`
   
-### 4. Run Script
+### 4. Run Scripts
 
-`python main.py`
+```
+# Ping Script
+python ping_monitor.py
+
+# Hardware Monitoring
+python hardware_monitor.py
+
+``` 
+
+### 5. Supervisor
+
+* Locate file health-monitoring\health_monitoring.conf
+* Enter configs based on template
+* You may need to add configs for the two scripts
+
+`supervisorctl reread`
+
+`supervisorctl reload`
+
+`supervisorctl restart all`
+
 
 ***
+
+### 6. Reporting
+
+* Locate and modify health-monitoring\daily_report.sh for linux health-monitoring\daily_report.bat for windows
+* Add script to cron jon or windows scheduler to run daily at set time
+
+```
+# Windows
+schtasks /create /tn "DailyHealthMonitoringReport" /tr "<pathto>\health-monitoring\daily_report.bat" /sc daily /st 16:30
+
+# Query task
+schtasks /query /tn "DailyHealthMonitoringReport"
+
+# Linux
+crontab -e
+
+30 16 * * * /path/to/health-monitoring/daily_report.sh
+
+# Query cron jobs
+
+crontab -l
+```
 
 # Third-Party Libraries
 

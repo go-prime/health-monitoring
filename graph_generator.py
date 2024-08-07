@@ -1,6 +1,7 @@
 import os
 import json
 import datetime
+import statistics
 
 import plotly.graph_objects as go
 import psutil
@@ -9,6 +10,9 @@ import psutil
 # Check if file exists
 def check_file_exists(file_path):
     return os.path.exists(file_path)
+
+def get_datetime_string_from_timestamp(timestamp):
+    return datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
 
 def generate_hardware_graphic(metric):
@@ -107,7 +111,7 @@ def generate_graphic(site_name, metric, metrics_map=None):
     file_prefix = str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
     if metric == 'ping':    
         # Extract timestamps and statuses
-        timestamps = [result['timestamp'] for result in results]
+        timestamps = [get_datetime_string_from_timestamp(result['timestamp']) for result in results]
         statuses = [1 if result['status'] == "success" else 0 for result in results]
         
         # Create the plot
@@ -136,7 +140,7 @@ def generate_graphic(site_name, metric, metrics_map=None):
         # for metric, _  in metrics_map.items():
         #     fig = generate_hardware_graphic(metric)
         #     fig.write_image(os.path.join(exports_folder, metric, f'{file_prefix}_{metric}_metrics.png'))
-        timestamps = [result['timestamp'] for result in results]
+        timestamps = [get_datetime_string_from_timestamp(result['timestamp']) for result in results]
         cpu_usages = [entry["cpu_usage"] for entry in results]
         ram_usage_percentages = [entry["ram_usage_percentage"] for entry in results]
         load_avg_5mins = [entry["load_avg_last_5_mins"] for entry in results]
@@ -221,3 +225,115 @@ def generate_graphic(site_name, metric, metrics_map=None):
     
     else:
         raise ValueError("Invalid metric specified")
+
+
+def generate_hardware_metrics_trends_graph(site, data):
+    if not data:
+        return
+
+    hardware_breakdown = {}
+    sub_folder = 'hardware_metrics'
+    exports_folder = os.path.join('exports', 'images', 'reports', site, sub_folder)
+
+    if not os.path.exists(exports_folder):
+        os.makedirs(exports_folder)
+        
+    # clear folder before generating new graphs
+    for file in os.listdir(exports_folder):
+        os.remove(os.path.join(exports_folder, file))
+
+
+    timestamps = [get_datetime_string_from_timestamp(entry['timestamp']) for entry in data]
+    cpu_usages = [entry["cpu_usage"] for entry in data]
+    ram_usage_percentages = [entry["ram_usage_percentage"] for entry in data]
+    disk_usage_percentages = [
+       ((entry["disk_usage_used"] / (entry["disk_usage_free"] + entry["disk_usage_used"])) * 100) for entry in data
+    ]
+    
+    disk_usage_avg = statistics.mean([(item['disk_usage_used'] / (item['disk_usage_used'] + item['disk_usage_free'])) * 100 for item in data])
+    ram_usage_avg = statistics.mean([item['ram_usage_percentage'] for item in data])
+    cpu_usage_avg = statistics.mean([item['cpu_usage'] for item in data])
+    
+    hardware_breakdown = {
+        'disk_usage_avg': round(disk_usage_avg, 5),
+        'ram_usage_avg': round(ram_usage_avg, 5),
+        'cpu_usage_avg': round(cpu_usage_avg, 5)
+    }
+
+    cpu_trace = go.Scatter(x=timestamps, y=cpu_usages, mode='lines+markers', name='CPU Usage')
+    ram_trace = go.Scatter(x=timestamps, y=ram_usage_percentages, mode='lines+markers', name='RAM Usage Percentage')
+    disk_trace = go.Scatter(x=timestamps, y=disk_usage_percentages, mode='lines+markers', name='Disk Usage Percentage')
+
+    file_prefix = str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+    
+    fig = go.Figure([cpu_trace, ram_trace, disk_trace])
+    fig.update_layout(
+        title='System Metrics Over Time',
+        xaxis_title='Timestamp',
+        yaxis_title='Value',
+        legend_title='Metrics'
+    )
+    
+    fig.write_image(os.path.join(exports_folder, f'{file_prefix}_hardware_metrics_trends.png'))
+    return os.path.join(exports_folder, f'{file_prefix}_hardware_metrics_trends.png'), hardware_breakdown
+    
+
+def generate_ping_metrics_trends_graph(site, data):
+    if not data:
+        return
+
+    sub_folder = 'ping_metrics'
+    exports_folder = os.path.join('exports', 'images', 'reports', site, sub_folder)
+    ping_breakdown = {}
+    
+
+    if not os.path.exists(exports_folder):
+        os.makedirs(exports_folder)
+
+    # clear folder before generating new graphs
+    for file in os.listdir(exports_folder):
+        os.remove(os.path.join(exports_folder, file))
+
+    timestamps = [get_datetime_string_from_timestamp(entry['timestamp']) for entry in data]
+    statuses = [1 if entry['status'] == "success" else 0 for entry in data]
+    
+    status_avg_success = statistics.mean([item for item in statuses])
+    ping_breakdown = {
+        'status_avg_success': round(status_avg_success, 5)
+    }
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=timestamps, y=statuses, mode='lines+markers', name='Ping Status'))
+
+    fig.update_layout(
+        title='Ping Success Over Time',
+        xaxis_title='Timestamp',
+        yaxis_title='Status (1 = success)',
+        showlegend=True
+    )
+
+    file_prefix = str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+    fig.write_image(os.path.join(exports_folder, f'{file_prefix}_ping_metrics_trends.png'))
+    return os.path.join(exports_folder, f'{file_prefix}_ping_metrics_trends.png'), ping_breakdown
+    
+
+
+def generate_graphs_for_daily_report(site_name, hardware_source_file=None, ping_source_file=None):
+    # hardware_data
+    hardware_graph_file = None
+    ping_graph_file = None
+    breakdown = {}
+
+    if hardware_source_file:
+        with open(hardware_source_file) as hardware_file:
+            hardware_data = json.load(hardware_file)
+        hardware_graph_file, breakdown["hardware"] = generate_hardware_metrics_trends_graph(site_name, hardware_data)
+
+
+    # ping data
+    if ping_source_file:
+        with open(ping_source_file) as ping_file:
+            ping_data = json.load(ping_file)
+        ping_graph_file, breakdown["ping"] = generate_ping_metrics_trends_graph(site_name, ping_data)
+        
+    return hardware_graph_file, ping_graph_file, breakdown
