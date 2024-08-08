@@ -166,3 +166,4 @@ config.json
 ping_results.json
 hardware_metrics.json
 exports/
+daily_report.sh
