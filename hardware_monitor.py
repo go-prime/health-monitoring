@@ -94,6 +94,7 @@ def process_metrics(interval, output_file):
     while True:
         threshhold_exceeded, exceeded_metrics = record_hardware_metrics(output_file)
         hardware_triggers = 0
+        hardware_results = []
         
         if threshhold_exceeded:
             # Get last 10 hardware metrics results
@@ -136,7 +137,12 @@ def process_metrics(interval, output_file):
         
         
         logging.info('Finished assessing hardware triggers')
-        hardware_alarm_stage_triggered = hardware_triggers >= (MAXIMUM_NO_OF_TRIGGERS/len(exceeded_metrics.items()))
+
+        exceeded_pop = len(exceeded_metrics.items())
+        if exceeded_pop:
+            hardware_alarm_stage_triggered = hardware_triggers >= (MAXIMUM_NO_OF_TRIGGERS/exceeded_pop)
+        else:
+            hardware_alarm_stage_triggered = False
         
         logging.info(f'Hardware Alarm Stage Triggered: {hardware_alarm_stage_triggered}')
         logging.info(f'Number of hardware triggers: {hardware_triggers}')
