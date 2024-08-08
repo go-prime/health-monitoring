@@ -4,7 +4,6 @@ import os
 import time
 
 from hardware_metrics import get_cpu_usage, get_disk_usage, get_load_average, get_ram_usage
-from mailer import send_email
 from utils import export_to_json_file, get_config, send_warning_email
 
 
