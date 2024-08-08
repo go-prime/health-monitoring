@@ -4,14 +4,21 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 
+from utils import get_abs_path
+
+
+mailer_log = 'logs/email.log'
+mailer_log = get_abs_path(mailer_log)
+conf = 'config/config.json'
+conf = get_abs_path(conf)
 
 # Set up logging
 logging.basicConfig(filename='logs/mailer.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-if not os.path.exists('config/config.json'):
+if not os.path.exists(conf):
     raise FileNotFoundError("Config file not found")
 
-with open('config/config.json') as config_file:
+with open(conf) as config_file:
     config = json.load(config_file)
     
 # LOAD MAILING CONFIG

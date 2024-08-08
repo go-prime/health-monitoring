@@ -175,8 +175,12 @@ def send_warning_email(site_name,
     send_email(cc, subject, msg, attachments)
 
 
+def get_base_dir():
+    return os.path.dirname(os.path.abspath(__file__))
+
 def get_latest_json_file(site_name, metric):
-    site_folder = os.path.join('results', site_name, f'{metric}_metrics')
+    base_dir = os.path.join(get_base_dir(), 'results')
+    site_folder = os.path.join(base_dir, site_name, f'{metric}_metrics')
     if not os.path.exists(site_folder):
         os.makedirs(site_folder)
     json_files = [f for f in os.listdir(site_folder) if f.endswith('.json')]
@@ -186,3 +190,6 @@ def get_latest_json_file(site_name, metric):
     json_files.sort(reverse=True)
 
     return os.path.join(site_folder, json_files[0])
+
+def get_abs_path(path):
+    return os.path.join(os.path.dirname(__file__), path)
