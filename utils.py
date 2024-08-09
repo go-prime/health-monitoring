@@ -199,10 +199,10 @@ def get_abs_path(path):
 
 def current_time_within_business_hours():
     conf = get_config()
-    business_starting_hour = conf.get('BUSINESS_STARTING_HOUR', '08:00')
-    business_finishing_hour = conf.get('BUSINESS_FINISHING_HOUR', '17:00')
+    business_starting_hour = conf.get('BUSINESS_DAY_START', '08:00')
+    business_finishing_hour = conf.get('BUSINESS_DAY_END', '17:00')
     business_weekstart_day = conf.get('BUSINESS_WEEK_START', "MONDAY")
-    business_weekend_day = conf.get('BUSINESS_WEEK_START', "FRIDAY")
+    business_weekend_day = conf.get('BUSINESS_WEEK_END', "FRIDAY")
     
     # Return false if day outside business week
     days_of_week = {

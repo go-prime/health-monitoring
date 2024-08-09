@@ -111,52 +111,51 @@ def ping_url(url, output_file):
 
 def process_metrics(url, interval, output_file):
     ping_alarm_stage_triggered = False
-    
-    curr_time = time.strftime("%H:%M")
-    curr_date = datetime.datetime.now().date().strftime("%a")
-    if not current_time_within_business_hours():
-        logging.info(f'Current TIME:{curr_time} DAY:{curr_date} is outside business hours. Skipping ping monitoring.')
-        return
-    
-    logging.info(f'Current TIME:{curr_time} DAY:{curr_date} within business hours')
-
 
     while True:
-        url_accessed = ping_url(url, output_file)
+        curr_time = time.strftime("%H:%M")
+        curr_date = datetime.datetime.now().date().strftime("%a")
+    
+        if current_time_within_business_hours():
+            logging.info(f'Current TIME:{curr_time} DAY:{curr_date} within business hours')
+                
+            url_accessed = ping_url(url, output_file)
 
-        if not url_accessed:
-            # Get last 10 ping results
-            with open(output_file, 'r') as file:
-                ping_results = json.load(file)[-10:]
+            if not url_accessed:
+                # Get last 10 ping results
+                with open(output_file, 'r') as file:
+                    ping_results = json.load(file)[-10:]
 
-            logging.info(f'Ping Results: Last 3 {ping_results[:3]}')
-            logging.info(f'Maximum number of triggers permitted: {MAXIMUM_NO_OF_TRIGGERS}')
+                logging.info(f'Ping Results: Last 3 {ping_results[:3]}')
+                logging.info(f'Maximum number of triggers permitted: {MAXIMUM_NO_OF_TRIGGERS}')
 
 
-            logging.info(f'Assessing Ping Triggers:')
-            logging.info(f'{str(["x" for r in ping_results if r.get("status") == "failure"])}')
+                logging.info(f'Assessing Ping Triggers:')
+                logging.info(f'{str(["x" for r in ping_results if r.get("status") == "failure"])}')
 
-            fail_list = [result for result in ping_results if result.get('status') == 'failure']
+                fail_list = [result for result in ping_results if result.get('status') == 'failure']
 
-            logging.info(f'Ping failures: {fail_list}')
+                logging.info(f'Ping failures: {fail_list}')
 
-            no_of_ping_failures = len(fail_list)
+                no_of_ping_failures = len(fail_list)
 
-            logging.info(f'Number of ping failures: {no_of_ping_failures}')
-            if no_of_ping_failures >= MAXIMUM_NO_OF_TRIGGERS:
-                ping_alarm_stage_triggered = True
+                logging.info(f'Number of ping failures: {no_of_ping_failures}')
+                if no_of_ping_failures >= MAXIMUM_NO_OF_TRIGGERS:
+                    ping_alarm_stage_triggered = True
 
-            logging.info(f'Ping Alarm Stage Triggered: {ping_alarm_stage_triggered}')
+                logging.info(f'Ping Alarm Stage Triggered: {ping_alarm_stage_triggered}')
 
-            
-            logging.info(f'Ping Alarm Stage Triggered: {ping_alarm_stage_triggered}')
 
-            send_warning_email(
-                site_name=SITE_NAME,
-                cc=MAILING_LIST,
-                ping_alarm_triggered=ping_alarm_stage_triggered,
-                ping_retries=MAX_RETRY_ATTEMPTS
-            )
+                logging.info(f'Ping Alarm Stage Triggered: {ping_alarm_stage_triggered}')
+
+                send_warning_email(
+                    site_name=SITE_NAME,
+                    cc=MAILING_LIST,
+                    ping_alarm_triggered=ping_alarm_stage_triggered,
+                    ping_retries=MAX_RETRY_ATTEMPTS
+                )
+            else:
+                logging.info(f'Current TIME:{curr_time} DAY:{curr_date} is outside business hours. Skipping ping monitoring.')
 
         time.sleep(interval)
 

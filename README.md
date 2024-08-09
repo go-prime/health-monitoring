@@ -27,13 +27,12 @@
 "MAXIMUM_NO_OF_ALARM_STATE_TRIGGERS": 5, # the number of triggers in the last 10 iterations that will set off an alert.
 "EXCLUDE_PING_FROM_REPORTING": true,
 "EXCLUDE_HARDWARE_CHECK_FROM_REPORTING": false,
-"BUSINESS_DAY_START": "09:00",
-"BUSINESS_DAY_END": "17:00",
-"BUSINESS_WEEK_START": "MONDAY",
+"BUSINESS_DAY_START": "09:00", # used to validate working hours
+"BUSINESS_DAY_END": "17:00", # used to validate working hours
+"BUSINESS_WEEK_START": "MONDAY", # used to validate work week
 "BUSINESS_WEEK_END": "FRIDAY",
-"PING_MONITOR_SUPERVISOR": "ping-monitor",
-"HARDWARE_MONITOR_SUPERVISOR": "hardware-monitor"
-
+"PING_MONITOR_SUPERVISOR": "ping-monitor", # name of supervisor method to reference for temporary restart
+"HARDWARE_MONITOR_SUPERVISOR": "hardware-monitor", # name of supervisor method to reference for temporary restart
 }
 ```
 
@@ -121,3 +120,11 @@ crontab -l
 * `kaleido` - library for generating static images.
 
 * `requests` - HTTP client library for the Python.
+
+# Issues
+
+* Need a recommened way to allow report generator to do restarts
+* Need to create seperate graphs for hardware metrics
+* Need to expand metrics being tracked
+* Need to implement a strategy to manage logfile size
+* Need to reimplement alerting logic. The tests have shown that concerning parameter peaks are not being alerted. The logic is falling short

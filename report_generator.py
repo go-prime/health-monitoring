@@ -39,6 +39,15 @@ def generate_report(site_name):
     if not hardware_skipped and not hardwware_supervisor_name:
         logging.info("Skipping Hardware Report Generation: No hardware supervisor moniker found")
 
+    if not ping_skipped:
+        # stop supervisor process
+        logging.info("Stopping Ping Supervisor Process")
+        subprocess.run(['sudo', 'supervisorctl', 'stop', ping_supervisor_name])
+            
+    if not hardware_skipped:
+        logging.info("Stopping Hardware Supervisor Process")
+        subprocess.run(['sudo', 'supervisorctl', 'stop', hardwware_supervisor_name])
+
     ping_source_file = get_latest_json_file(site_name, 'ping') if not ping_skipped else None
     hardware_source_file = get_latest_json_file(site_name, 'hardware') if not hardware_skipped else None
 
@@ -95,10 +104,6 @@ def generate_report(site_name):
 
     # clear source files to restart process
     if not ping_skipped:
-        # stop supervisor process
-        logging.info("Stopping Ping Supervisor Process")
-        subprocess.run(['sudo', 'supervisorctl', 'stop', ping_supervisor_name])
-
         with open(ping_source_file, 'w') as f:
             json.dump([], f)
         # restart supervisor process
@@ -106,9 +111,6 @@ def generate_report(site_name):
         logging.info("Ping Supervisor Process Restarted")
             
     if not hardware_skipped:
-        logging.info("Stopping Hardware Supervisor Process")
-        subprocess.run(['sudo', 'supervisorctl', 'stop', hardwware_supervisor_name])
-
         with open(hardware_source_file, 'w') as f:
             json.dump([], f)
             
