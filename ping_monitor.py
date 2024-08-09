@@ -1,3 +1,4 @@
+import datetime
 import json, os
 import time
 import logging
@@ -6,7 +7,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from utils import export_to_json_file, send_warning_email
+from utils import current_time_within_business_hours, export_to_json_file, send_warning_email
 
 
 # Set up logging
@@ -25,6 +26,9 @@ MAILING_LIST = config.get('MAILING_LIST', [])
 MAX_RETRY_ATTEMPTS = config.get('MAX_RETRY_ATTEMPTS', 4)
 SITE_NAME = config.get('SITE_NAME')
 MAX_FOLDER_SIZE = config.get('MAX_FOLDER_SIZE', 1000) # in MB
+
+BUSINESS_STARTING_HOUR = config.get("BUSINESS_START", "08:00")
+BUSINESS_FINISHING_HOUR = config.get("BUSINESS_START", "17:00")
 
 # Get max thresholds for hardware
 RAM_USAGE_MAX_THRESH_HOLD = config.get('RAM_USAGE_MAX_THRESH_HOLD', 80)
@@ -102,8 +106,20 @@ def ping_url(url, output_file):
     return connected
 
 
+
+
+
 def process_metrics(url, interval, output_file):
     ping_alarm_stage_triggered = False
+    
+    curr_time = time.strftime("%H:%M")
+    curr_date = datetime.datetime.now().date().strftime("%a")
+    if not current_time_within_business_hours():
+        logging.info(f'Current TIME:{curr_time} DAY:{curr_date} is outside business hours. Skipping ping monitoring.')
+        return
+    
+    logging.info(f'Current TIME:{curr_time} DAY:{curr_date} within business hours')
+
 
     while True:
         url_accessed = ping_url(url, output_file)

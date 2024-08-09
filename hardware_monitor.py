@@ -1,10 +1,11 @@
+import datetime
 import json
 import logging
 import os
 import time
 
 from hardware_metrics import get_cpu_usage, get_disk_usage, get_load_average, get_ram_usage
-from utils import export_to_json_file, get_config, send_warning_email
+from utils import current_time_within_business_hours, export_to_json_file, get_config, send_warning_email
 
 
 logging.basicConfig(filename='logs/ping.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -83,6 +84,15 @@ def record_hardware_metrics(output_file):
 
 
 def process_metrics(interval, output_file):
+    curr_time = time.strftime("%H:%M")
+    curr_date = datetime.datetime.now().date().strftime("%a")
+    if not current_time_within_business_hours():
+        logging.info(f'Current TIME:{curr_time} DAY:{curr_date} is outside business hours. Skipping ping monitoring.')
+        return
+    
+    logging.info(f'Current TIME:{curr_time} DAY:{curr_date} within business hours')
+
+
     hardware_alarm_stage_triggered = False
     threshhold_map = {
         'cpu_usage': CPU_USAGE_MAX_THRESH_HOLD,

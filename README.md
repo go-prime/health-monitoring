@@ -24,7 +24,16 @@
 "MAX_RETRY_ATTEMPTS": 4,
 "SITE_NAME": "test", # in order to uniquely id graph and metric folders
 "MAX_FOLDER_SIZE": 1000,# in mb to determine max size of graph for each site
-"MAXIMUM_NO_OF_ALARM_STATE_TRIGGERS": 5 # the number of triggers in the last 10 iterations that will set off an alert.
+"MAXIMUM_NO_OF_ALARM_STATE_TRIGGERS": 5, # the number of triggers in the last 10 iterations that will set off an alert.
+"EXCLUDE_PING_FROM_REPORTING": true,
+"EXCLUDE_HARDWARE_CHECK_FROM_REPORTING": false,
+"BUSINESS_DAY_START": "09:00",
+"BUSINESS_DAY_END": "17:00",
+"BUSINESS_WEEK_START": "MONDAY",
+"BUSINESS_WEEK_END": "FRIDAY",
+"PING_MONITOR_SUPERVISOR": "ping-monitor",
+"HARDWARE_MONITOR_SUPERVISOR": "hardware-monitor"
+
 }
 ```
 
