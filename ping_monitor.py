@@ -1,5 +1,6 @@
 import json, os
 import time
+import datetime
 import logging
 
 import requests
@@ -18,7 +19,7 @@ if not os.path.exists('config/config.json'):
 with open('config/config.json') as config_file:
     config = json.load(config_file)
 
-# Setting parameters  
+# Setting parameters
 PING_URL = config.get('PING_URL', 'www.example.com')
 PING_INTERVAL = config.get('PING_INTERVAL', 60)
 MAILING_LIST = config.get('MAILING_LIST', [])
@@ -39,7 +40,7 @@ def ping_retry(url):
     retries = 0
     s = requests.Session()
     logging.info(f'Retrying connection to {url}')
-    
+
     logging.info('Setting up retry strategy')
     # Set up retry strategy
     retry_strategy = Retry(
@@ -50,7 +51,7 @@ def ping_retry(url):
 
     s.mount('https://', HTTPAdapter(max_retries=retry_strategy))
     logging.info('Retry strategy set')
-    
+
     while retries < MAX_RETRY_ATTEMPTS:
         logging.info('Retrying to connect.....')
         logging.info(f'Retry count: {retries + 1}')
@@ -93,19 +94,21 @@ def ping_url(url, output_file):
         results.append({"timestamp": time.time(), "status": "failure", "error": str(e)})
         # retry ping
         connected = ping_retry(url)
-        
+
     logging.info(f'Logging to {output_file}')
     logging.info(f'Logging File {output_file} found. TRUE:{os.path.exists(output_file)}')
-    
+
     export_to_json_file(results, output_file)
 
     return connected
 
 
-def process_metrics(url, interval, output_file):
+def process_metrics(url, interval, ping_results_folder):
     ping_alarm_stage_triggered = False
 
     while True:
+        date_string = datetime.date.today().strftime("%Y_%m_%d")
+        output_file = ping_results_folder + f'/ping_results_{date_string}.json'
         url_accessed = ping_url(url, output_file)
 
         if not url_accessed:
@@ -132,9 +135,6 @@ def process_metrics(url, interval, output_file):
 
             logging.info(f'Ping Alarm Stage Triggered: {ping_alarm_stage_triggered}')
 
-            
-            logging.info(f'Ping Alarm Stage Triggered: {ping_alarm_stage_triggered}')
-
             send_warning_email(
                 site_name=SITE_NAME,
                 cc=MAILING_LIST,
@@ -151,13 +151,12 @@ if __name__ == "__main__":
 
     # create sites results folder if it doesn't exist
     ping_results_folder = os.path.join('results', SITE_NAME, 'ping_metrics')
+    date_string = datetime.date.today().strftime("%Y_%m_%d")
     if not os.path.exists(ping_results_folder):
-        os.makedirs(ping_results_folder)    
+        os.makedirs(ping_results_folder)
         # Create file
-        with open(os.path.join(ping_results_folder, 'ping_results.json'), 'w') as file:
+        with open(os.path.join(ping_results_folder, f'ping_results_{date_string}.json'), 'w') as file:
             json.dump([], file)
 
-    ping_output_file = ping_results_folder + '/ping_results.json'
-
     logging.info('Starting Up')
-    process_metrics(url_to_ping, ping_interval, ping_output_file)
+    process_metrics(url_to_ping, ping_interval, ping_results_folder)

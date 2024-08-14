@@ -23,8 +23,13 @@ def get_disk_usage():
 def get_load_average():
     '''Represents the processes which are in a runnable state,
         either using the CPU or waiting to use the CPU'''
+    five, ten, fifteen = psutil.getloadavg()
     return {
-        "Last 5 Mins": psutil.getloadavg()[0],
-        "Last 10 Mins": psutil.getloadavg()[1],
-        "Last 15 Mins": psutil.getloadavg()[2],
+        "Last 5 Mins": five,
+        "Last 10 Mins": ten,
+        "Last 15 Mins": fifteen,
     }
+
+
+if __name__ == "__main__":
+    print(get_load_average())

@@ -1,6 +1,7 @@
 import json
 import os
 import logging
+import datetime
 
 from graph_generator import generate_graphic
 from mailer import send_email
@@ -110,7 +111,7 @@ def export_to_json_file(results, output_file):
 
     # Append new results to the existing data
     existing_data.extend(results)
-    
+
     with  open(output_file, 'w') as file:
         json.dump(existing_data, file, indent=4)
 
@@ -178,18 +179,21 @@ def send_warning_email(site_name,
 def get_base_dir():
     return os.path.dirname(os.path.abspath(__file__))
 
+
 def get_latest_json_file(site_name, metric):
+    date_string = datetime.date.today().strftime("%Y_%m_%d")
     base_dir = os.path.join(get_base_dir(), 'results')
     site_folder = os.path.join(base_dir, site_name, f'{metric}_metrics')
     if not os.path.exists(site_folder):
         os.makedirs(site_folder)
-    json_files = [f for f in os.listdir(site_folder) if f.endswith('.json')]
-
-    if not json_files:
         return None
-    json_files.sort(reverse=True)
 
-    return os.path.join(site_folder, json_files[0])
+    json_file = os.path.join(site_folder, f'{metric}_metrics_{date_string}.json')
+    if not os.path.exists(json_file):
+        return None
+
+    return json_file
+
 
 def get_abs_path(path):
     return os.path.join(os.path.dirname(__file__), path)
