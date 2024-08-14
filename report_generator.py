@@ -22,7 +22,7 @@ def generate_report(site_name):
     ping_skipped = conf.get('EXCLUDE_PING_FROM_REPORTING')
     hardware_skipped = conf.get('EXCLUDE_HARDWARE_FROM_REPORTING')
     stats_breakdown = ""
-    
+
     if ping_skipped and hardware_skipped:
         logging.info("Skipping Daily Report Generation")
         return
