@@ -167,3 +167,4 @@ ping_results.json
 hardware_metrics.json
 exports/
 daily_report.sh
+*.conf
