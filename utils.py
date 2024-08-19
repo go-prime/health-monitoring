@@ -2,6 +2,7 @@ import json
 import os
 import logging
 import datetime
+import time
 
 from graph_generator import generate_graphic
 from mailer import send_email
@@ -197,3 +198,33 @@ def get_latest_json_file(site_name, metric):
 
 def get_abs_path(path):
     return os.path.join(os.path.dirname(__file__), path)
+
+def current_time_within_business_hours():
+    conf = get_config()
+    business_starting_hour = conf.get('BUSINESS_DAY_START', '08:00')
+    business_finishing_hour = conf.get('BUSINESS_DAY_END', '17:00')
+    business_weekstart_day = conf.get('BUSINESS_WEEK_START', "MONDAY")
+    business_weekend_day = conf.get('BUSINESS_WEEK_END', "FRIDAY")
+
+    # Return false if day outside business week
+    days_of_week = {
+        "MONDAY": 0,
+        "TUESDAY": 1,
+        "WEDNESDAY": 2,
+        "THURSDAY": 3,
+        "FRIDAY": 4,
+        "SATURDAY": 5,
+        "SUNDAY": 6
+    }
+
+    current_day = datetime.datetime.today().weekday()
+    current_time = time.strftime("%H:%M")
+
+    week_start = days_of_week[business_weekstart_day.upper()]
+    week_end = days_of_week[business_weekend_day.upper()]
+
+    # Check if the current day is within the business week
+    if not (week_start <= current_day <= week_end):
+        return False
+
+    return business_starting_hour <= current_time <= business_finishing_hour

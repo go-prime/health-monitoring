@@ -7,7 +7,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from utils import export_to_json_file, send_warning_email
+from utils import current_time_within_business_hours, export_to_json_file, send_warning_email
 
 
 # Set up logging
@@ -26,6 +26,10 @@ MAILING_LIST = config.get('MAILING_LIST', [])
 MAX_RETRY_ATTEMPTS = config.get('MAX_RETRY_ATTEMPTS', 4)
 SITE_NAME = config.get('SITE_NAME')
 MAX_FOLDER_SIZE = config.get('MAX_FOLDER_SIZE', 1000) # in MB
+
+# business working hours
+BUSINESS_STARTING_HOUR = config.get("BUSINESS_START", "08:00")
+BUSINESS_FINISHING_HOUR = config.get("BUSINESS_START", "17:00")
 
 # Get max thresholds for hardware
 RAM_USAGE_MAX_THRESH_HOLD = config.get('RAM_USAGE_MAX_THRESH_HOLD', 80)
@@ -109,38 +113,47 @@ def process_metrics(url, interval, ping_results_folder):
     while True:
         date_string = datetime.date.today().strftime("%Y_%m_%d")
         output_file = ping_results_folder + f'/ping_results_{date_string}.json'
-        url_accessed = ping_url(url, output_file)
 
-        if not url_accessed:
-            # Get last 10 ping results
-            with open(output_file, 'r') as file:
-                ping_results = json.load(file)[-10:]
+        curr_time = time.strftime("%H:%M")
+        curr_date = datetime.datetime.now().date().strftime("%a")
+        
+        # Check if current date and time with working hours
+        if current_time_within_business_hours():
+            logging.info(f'Current TIME:{curr_time} DAY:{curr_date} within business hours')
+            url_accessed = ping_url(url, output_file)
+            
+            if not url_accessed:
+                # Get last 10 ping results
+                with open(output_file, 'r') as file:
+                    ping_results = json.load(file)[-10:]
 
-            logging.info(f'Ping Results: Last 3 {ping_results[:3]}')
-            logging.info(f'Maximum number of triggers permitted: {MAXIMUM_NO_OF_TRIGGERS}')
+                logging.info(f'Ping Results: Last 3 {ping_results[:3]}')
+                logging.info(f'Maximum number of triggers permitted: {MAXIMUM_NO_OF_TRIGGERS}')
 
 
-            logging.info(f'Assessing Ping Triggers:')
-            logging.info(f'{str(["x" for r in ping_results if r.get("status") == "failure"])}')
+                logging.info(f'Assessing Ping Triggers:')
+                logging.info(f'{str(["x" for r in ping_results if r.get("status") == "failure"])}')
 
-            fail_list = [result for result in ping_results if result.get('status') == 'failure']
+                fail_list = [result for result in ping_results if result.get('status') == 'failure']
 
-            logging.info(f'Ping failures: {fail_list}')
+                logging.info(f'Ping failures: {fail_list}')
 
-            no_of_ping_failures = len(fail_list)
+                no_of_ping_failures = len(fail_list)
 
-            logging.info(f'Number of ping failures: {no_of_ping_failures}')
-            if no_of_ping_failures >= MAXIMUM_NO_OF_TRIGGERS:
-                ping_alarm_stage_triggered = True
+                logging.info(f'Number of ping failures: {no_of_ping_failures}')
+                if no_of_ping_failures >= MAXIMUM_NO_OF_TRIGGERS:
+                    ping_alarm_stage_triggered = True
 
-            logging.info(f'Ping Alarm Stage Triggered: {ping_alarm_stage_triggered}')
+                logging.info(f'Ping Alarm Stage Triggered: {ping_alarm_stage_triggered}')
 
-            send_warning_email(
-                site_name=SITE_NAME,
-                cc=MAILING_LIST,
-                ping_alarm_triggered=ping_alarm_stage_triggered,
-                ping_retries=MAX_RETRY_ATTEMPTS
-            )
+                send_warning_email(
+                    site_name=SITE_NAME,
+                    cc=MAILING_LIST,
+                    ping_alarm_triggered=ping_alarm_stage_triggered,
+                    ping_retries=MAX_RETRY_ATTEMPTS
+                )
+        else:
+            logging.info(f'Current TIME:{curr_time} DAY:{curr_date} is outside business hours. Skipping ping monitoring.')
 
         time.sleep(interval)
 

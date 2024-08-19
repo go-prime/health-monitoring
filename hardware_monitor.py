@@ -5,7 +5,7 @@ import time
 import datetime
 
 from hardware_metrics import get_cpu_usage, get_disk_usage, get_load_average, get_ram_usage
-from utils import export_to_json_file, get_config, send_warning_email
+from utils import current_time_within_business_hours, export_to_json_file, get_config, send_warning_email
 
 
 logging.basicConfig(filename='logs/ping.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -26,6 +26,8 @@ HARDWARE_CHECK_INTERVAL = config.get('HARDWARE_CHECK_INTERVAL', 60)
 
 # Site name
 SITE_NAME = config.get('SITE_NAME', '')
+
+
 
 
 def record_hardware_metrics(output_file):
@@ -90,53 +92,61 @@ def process_metrics(interval, hardware_metrics_folder):
         'disk_usage': HDD_USAGE_MAX_THRESH_HOLD,
         'ram_usage': RAM_USAGE_MAX_THRESH_HOLD
     }
+    
+    curr_time = time.strftime("%H:%M")
+    curr_date = datetime.datetime.now().date().strftime("%a")
 
     while True:
-        date_string = datetime.date.today().strftime("%Y_%m_%d")
-        output_file = os.path.join(hardware_metrics_folder,
-                               f'hardware_metrics_{date_string}.json')
-        threshhold_exceeded, exceeded_metrics = record_hardware_metrics(output_file)
-        hardware_triggers = 0
-        hardware_results = []
+        if current_time_within_business_hours():
+            logging.info(f'Current TIME:{curr_time} DAY:{curr_date} is outside business hours. Skipping ping monitoring.')
+            
+            date_string = datetime.date.today().strftime("%Y_%m_%d")
+            output_file = os.path.join(hardware_metrics_folder,
+                                f'hardware_metrics_{date_string}.json')
+            threshhold_exceeded, exceeded_metrics = record_hardware_metrics(output_file)
+            hardware_triggers = 0
+            hardware_results = []
 
-        if threshhold_exceeded:
-            # Get last 10 hardware metrics results
-            with open(output_file, 'r') as file:
-                hardware_results = json.load(file)[-10:]
+            if threshhold_exceeded:
+                # Get last 10 hardware metrics results
+                with open(output_file, 'r') as file:
+                    hardware_results = json.load(file)[-10:]
 
-        logging.info(f'Hardware Results: Last 3 {hardware_results[:3]}')
-        logging.info(f'Maximum number of triggers permitted: {MAXIMUM_NO_OF_TRIGGERS}')
+            logging.info(f'Hardware Results: Last 3 {hardware_results[:3]}')
+            logging.info(f'Maximum number of triggers permitted: {MAXIMUM_NO_OF_TRIGGERS}')
 
-        logging.info(f'Assessing Hardware Triggers:')
-        for metric, value in exceeded_metrics.items():
-            logging.info(f'Checking {metric}')
-            logging.info(f'Value: {value}')
-            for result in hardware_results:
-                if metric == "cpu_usage":
-                    logging.info(f'CPU USAGE: {result.get("cpu_usage", 0.00)}')
-                    logging.info(f'Max Threshold: {threshhold_map[metric]}')
-                    if result.get("cpu_usage", 0) > threshhold_map[metric]:
-                        logging.info('cpu_usage exceeded')
-                        hardware_triggers += 1
+            logging.info(f'Assessing Hardware Triggers:')
+            for metric, value in exceeded_metrics.items():
+                logging.info(f'Checking {metric}')
+                logging.info(f'Value: {value}')
+                for result in hardware_results:
+                    if metric == "cpu_usage":
+                        logging.info(f'CPU USAGE: {result.get("cpu_usage", 0.00)}')
+                        logging.info(f'Max Threshold: {threshhold_map[metric]}')
+                        if result.get("cpu_usage", 0) > threshhold_map[metric]:
+                            logging.info('cpu_usage exceeded')
+                            hardware_triggers += 1
 
-                if metric == "ram_usage":
-                    logging.info(f'RAM USAGE: {result.get("ram_usage_percentage", 0.00)}')
-                    logging.info(f'Max Threshold: {threshhold_map[metric]}')
-                    if result.get("ram_usage_percentage") > threshhold_map[metric]:
-                        logging.info('ram usage exceeded')
-                        hardware_triggers += 1
+                    if metric == "ram_usage":
+                        logging.info(f'RAM USAGE: {result.get("ram_usage_percentage", 0.00)}')
+                        logging.info(f'Max Threshold: {threshhold_map[metric]}')
+                        if result.get("ram_usage_percentage") > threshhold_map[metric]:
+                            logging.info('ram usage exceeded')
+                            hardware_triggers += 1
 
-                if metric == "disk_usage":
-                    total_usage = result.get('disk_usage_free', 0.0) + result.get('disk_usage_used', 0.0)
-                    used_percentage = (result.get('disk_usage_used') / total_usage or 1) * 100
-                    logging.info(f'DISK USAGE: {result.get("disk_usage_used", 0.00)}')
-                    logging.info(f'Max Threshold: {threshhold_map[metric]}')
-                    logging.info(f'Total Usage: {total_usage}')
-                    logging.info(f'FREE: {result.get("disk_usage_free", 0.0)}')
-                    logging.info(f'USED %: {used_percentage}')
-                    if result.get("disk_usage_used", 0) > threshhold_map[metric]:
-                        logging.info('disk usage exceeded')
-                        hardware_triggers += 1
+                    if metric == "disk_usage":
+                        total_usage = result.get('disk_usage_free', 0.0) + result.get('disk_usage_used', 0.0)
+                        used_percentage = (result.get('disk_usage_used') / total_usage or 1) * 100
+                        logging.info(f'DISK USAGE: {result.get("disk_usage_used", 0.00)}')
+                        logging.info(f'Max Threshold: {threshhold_map[metric]}')
+                        logging.info(f'Total Usage: {total_usage}')
+                        logging.info(f'FREE: {result.get("disk_usage_free", 0.0)}')
+                        logging.info(f'USED %: {used_percentage}')
+                        if result.get("disk_usage_used", 0) > threshhold_map[metric]:
+                            logging.info('disk usage exceeded')
+                            hardware_triggers += 1
+        else:
+            logging.info(f'Current TIME:{curr_time} DAY:{curr_date} is outside business hours. Skipping ping monitoring.')
 
         logging.info('Finished assessing hardware triggers')
 

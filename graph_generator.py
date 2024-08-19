@@ -271,7 +271,8 @@ def generate_hardware_metrics_trends_graph(site, data):
         title='System Metrics Over Time',
         xaxis_title='Timestamp',
         yaxis_title='Value',
-        legend_title='Metrics'
+        legend_title='Metrics',
+        width=900
     )
 
     fig.write_image(os.path.join(exports_folder, f'{file_prefix}_hardware_metrics_trends.png'))
@@ -308,7 +309,8 @@ def generate_ping_metrics_trends_graph(site, data):
         title='Ping Success Over Time',
         xaxis_title='Timestamp',
         yaxis_title='Status (1 = success)',
-        showlegend=True
+        showlegend=True,
+        width=900
     )
 
     file_prefix = str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
