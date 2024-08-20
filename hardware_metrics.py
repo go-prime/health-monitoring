@@ -8,7 +8,7 @@ def get_ram_usage():
 
 def get_cpu_usage():
     return {
-        "cpu_usage": psutil.cpu_percent()
+        "cpu_usage": psutil.cpu_percent(interval=1)
     }
 
 
