@@ -98,7 +98,7 @@ def process_metrics(interval, hardware_metrics_folder):
 
     while True:
         if current_time_within_business_hours():
-            logging.info(f'Current TIME:{curr_time} DAY:{curr_date} is outside business hours. Skipping ping monitoring.')
+            logging.info(f'Current TIME:{curr_time} DAY:{curr_date} is within business hours. Checking hardware metrics.')
             
             date_string = datetime.date.today().strftime("%Y_%m_%d")
             output_file = os.path.join(hardware_metrics_folder,
