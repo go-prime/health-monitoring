@@ -55,9 +55,7 @@ def generate_report(site_name):
     disk_use_avg = hardware_avg.get('disk_usage_avg') if hardware_avg else 0.0
     ram_use_avg = hardware_avg.get('ram_usage_avg') if hardware_avg else 0.0
     cpu_use_avg = hardware_avg.get('cpu_usage_avg') if hardware_avg else 0.0
-    load_last_15_mins_avg = hardware_avg.get('load_last_15_mins_avg') if hardware_avg else 0.0
     load_last_10_mins_avg = hardware_avg.get('load_last_10_mins_avg') if hardware_avg else 0.0
-    load_last_5_mins_avg = hardware_avg.get('load_last_5_mins_avg') if hardware_avg else 0.0
     
     if not ping_skipped:
         stats_breakdown += f"Average Ping Success: {avg_ping} %\n"
@@ -67,9 +65,7 @@ def generate_report(site_name):
         Average Disk Usage: {disk_use_avg} %
         Average RAM Usage: {ram_use_avg} %
         Average CPU Usage: {cpu_use_avg} %
-        Load Avg (15 Min): {load_last_15_mins_avg} %
-        Load Avg (10 Min): {load_last_10_mins_avg} %
-        Load Avg (5 Min): {load_last_5_mins_avg} %
+        Load Avg (10 Min): {load_last_10_mins_avg}
         """
 
     subject = f"Daily Report for {site_name}"
