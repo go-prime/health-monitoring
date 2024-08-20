@@ -145,28 +145,31 @@ def process_metrics(interval, hardware_metrics_folder):
                         if result.get("disk_usage_used", 0) > threshhold_map[metric]:
                             logging.info('disk usage exceeded')
                             hardware_triggers += 1
+                            
+                            
+            logging.info('Finished assessing hardware triggers')
+
+            exceeded_pop = len(exceeded_metrics.items())
+            if exceeded_pop:
+                hardware_alarm_stage_triggered = hardware_triggers >= (MAXIMUM_NO_OF_TRIGGERS/exceeded_pop)
+            else:
+                hardware_alarm_stage_triggered = False
+
+            logging.info(f'Hardware Alarm Stage Triggered: {hardware_alarm_stage_triggered}')
+            logging.info(f'Number of hardware triggers: {hardware_triggers}')
+            logging.info(f'Exceeded Metrics: {len(exceeded_metrics.items())}')
+
+            if threshhold_exceeded:
+                send_warning_email(
+                    site_name=SITE_NAME,
+                    cc=config.get('MAILING_LIST', []),
+                    hardware_alarm_triggered=hardware_alarm_stage_triggered, 
+                    metrics_map=exceeded_metrics
+                )
         else:
-            logging.info(f'Current TIME:{curr_time} DAY:{curr_date} is outside business hours. Skipping ping monitoring.')
+            logging.info(f'Current TIME:{curr_time} DAY:{curr_date} is outside business hours. Skipping hardware monitoring.')
 
-        logging.info('Finished assessing hardware triggers')
-
-        exceeded_pop = len(exceeded_metrics.items())
-        if exceeded_pop:
-            hardware_alarm_stage_triggered = hardware_triggers >= (MAXIMUM_NO_OF_TRIGGERS/exceeded_pop)
-        else:
-            hardware_alarm_stage_triggered = False
-
-        logging.info(f'Hardware Alarm Stage Triggered: {hardware_alarm_stage_triggered}')
-        logging.info(f'Number of hardware triggers: {hardware_triggers}')
-        logging.info(f'Exceeded Metrics: {len(exceeded_metrics.items())}')
-
-        if threshhold_exceeded:
-            send_warning_email(
-                site_name=SITE_NAME,
-                cc=config.get('MAILING_LIST', []),
-                hardware_alarm_triggered=hardware_alarm_stage_triggered, 
-                metrics_map=exceeded_metrics
-            )
+        
 
         time.sleep(interval)
 

@@ -218,7 +218,7 @@ def current_time_within_business_hours():
     }
 
     current_day = datetime.datetime.today().weekday()
-    current_time = time.strftime("%H:%M")
+    current_time = datetime.datetime.today().time()
 
     week_start = days_of_week[business_weekstart_day.upper()]
     week_end = days_of_week[business_weekend_day.upper()]
@@ -226,5 +226,8 @@ def current_time_within_business_hours():
     # Check if the current day is within the business week
     if not (week_start <= current_day <= week_end):
         return False
+
+    business_starting_hour = datetime.datetime.strptime(business_starting_hour, "%H:%M").time()
+    business_finishing_hour = datetime.datetime.strptime(business_finishing_hour, "%H:%M").time()
 
     return business_starting_hour <= current_time <= business_finishing_hour
