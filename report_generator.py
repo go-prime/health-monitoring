@@ -1,10 +1,9 @@
 import logging
-import json
-import subprocess
-
 from graph_generator import generate_graphs_for_daily_report
 from mailer import send_email
-from utils import get_abs_path, get_latest_json_file
+from utils import get_abs_path, get_latest_json_file, get_config
+import os
+import json
 
 
 log_file = 'logs/daily_report.log'
@@ -23,29 +22,10 @@ def generate_report(site_name):
     ping_skipped = conf.get('EXCLUDE_PING_FROM_REPORTING')
     hardware_skipped = conf.get('EXCLUDE_HARDWARE_FROM_REPORTING')
     stats_breakdown = ""
-    hardwware_supervisor_name = conf.get('HARDWARE_MONITOR_SUPERVISOR')
-    ping_supervisor_name = conf.get('PING_MONITOR_SUPERVISOR')
 
     if ping_skipped and hardware_skipped:
         logging.info("Skipping Daily Report Generation")
         return
-    
-    if not ping_skipped and not ping_supervisor_name:
-        logging.info("Skipping Ping Report Generation: No ping supervisor moniker found")
-
-    if not hardware_skipped and not hardwware_supervisor_name:
-        logging.info("Skipping Hardware Report Generation: No hardware supervisor moniker found")
-
-    if not ping_skipped:
-        # stop supervisor process
-        if ping_supervisor_name:
-            logging.info("Stopping Ping Supervisor Process")
-            subprocess.run(['sudo', 'supervisorctl', 'stop', ping_supervisor_name])
-
-    if not hardware_skipped:
-        if hardwware_supervisor_name:
-            logging.info("Stopping Hardware Supervisor Process")
-            subprocess.run(['sudo', 'supervisorctl', 'stop', hardwware_supervisor_name])
 
     ping_source_file = get_latest_json_file(site_name, 'ping') if not ping_skipped else None
     hardware_source_file = get_latest_json_file(site_name, 'hardware') if not hardware_skipped else None
@@ -75,6 +55,7 @@ def generate_report(site_name):
     disk_use_avg = hardware_avg.get('disk_usage_avg') if hardware_avg else 0.0
     ram_use_avg = hardware_avg.get('ram_usage_avg') if hardware_avg else 0.0
     cpu_use_avg = hardware_avg.get('cpu_usage_avg') if hardware_avg else 0.0
+    load_last_10_mins_avg = hardware_avg.get('load_last_10_mins_avg') if hardware_avg else 0.0
     
     if not ping_skipped:
         stats_breakdown += f"Average Ping Success: {avg_ping} %\n"
@@ -84,6 +65,7 @@ def generate_report(site_name):
         Average Disk Usage: {disk_use_avg} %
         Average RAM Usage: {ram_use_avg} %
         Average CPU Usage: {cpu_use_avg} %
+        Load Avg (10 Min): {load_last_10_mins_avg}
         """
 
     subject = f"Daily Report for {site_name}"
@@ -100,21 +82,5 @@ def generate_report(site_name):
     logging.info(f"Body: {body}")
 
     send_email(conf.get('MAILING_LIST'), subject=subject, body=body, attachments=attachments)
-    
-        # clear source files to restart process
-    if not ping_skipped:
-        with open(ping_source_file, 'w') as f:
-            json.dump([], f)
-        # restart supervisor process
-        subprocess.run(['sudo', 'supervisorctl', 'start', ping_supervisor_name])
-        logging.info("Ping Supervisor Process Restarted")
-
-    if not hardware_skipped:
-        with open(hardware_source_file, 'w') as f:
-            json.dump([], f)
-
-        logging.info("Hardware Supervisor Process Restarted")
-        subprocess.run(['sudo', 'supervisorctl', 'start', hardwware_supervisor_name])
-
 
 generate_report(conf.get('SITE_NAME'))

@@ -30,9 +30,7 @@
 "BUSINESS_DAY_START": "09:00", # used to validate working hours
 "BUSINESS_DAY_END": "17:00", # used to validate working hours
 "BUSINESS_WEEK_START": "MONDAY", # used to validate work week
-"BUSINESS_WEEK_END": "FRIDAY",
-"PING_MONITOR_SUPERVISOR": "ping-monitor", # name of supervisor method to reference for temporary restart
-"HARDWARE_MONITOR_SUPERVISOR": "hardware-monitor", # name of supervisor method to reference for temporary restart
+"BUSINESS_WEEK_END": "FRIDAY"
 }
 ```
 

@@ -245,33 +245,51 @@ def generate_hardware_metrics_trends_graph(site, data):
 
     start = time.mktime((datetime.datetime.now() - datetime.timedelta(hours=8)).timetuple())
     timestamps = [get_datetime_string_from_timestamp(entry['timestamp']) for entry in data if entry['timestamp'] > start]
+    
+    # Plotting Data
     cpu_usages = [entry["cpu_usage"] for entry in data]
     ram_usage_percentages = [entry["ram_usage_percentage"] for entry in data]
     disk_usage_percentages = [
        ((entry["disk_usage_used"] / (entry["disk_usage_free"] + entry["disk_usage_used"])) * 100) for entry in data
     ]
+    load_avg_last_10_mins = [item['load_avg_last_10_mins'] for item in data]
 
+    # Averages
     disk_usage_avg = statistics.mean([(item['disk_usage_used'] / (item['disk_usage_used'] + item['disk_usage_free'])) * 100 for item in data])
     ram_usage_avg = statistics.mean([item['ram_usage_percentage'] for item in data])
     cpu_usage_avg = statistics.mean([item['cpu_usage'] for item in data])
+    load_last_10_mins_avg = statistics.mean([item['load_avg_last_10_mins'] for item in data])
 
     hardware_breakdown = {
         'disk_usage_avg': round(disk_usage_avg, 5),
         'ram_usage_avg': round(ram_usage_avg, 5),
-        'cpu_usage_avg': round(cpu_usage_avg, 5)
+        'cpu_usage_avg': round(cpu_usage_avg, 5),
+        'load_last_10_mins_avg': round(load_last_10_mins_avg, 2)
     }
 
-    cpu_trace = go.Scatter(x=timestamps, y=cpu_usages, mode='lines+markers', name='CPU Usage')
-    ram_trace = go.Scatter(x=timestamps, y=ram_usage_percentages, mode='lines+markers', name='RAM Usage Percentage')
+    cpu_trace = go.Scatter(x=timestamps, y=cpu_usages, mode='lines+markers', name='CPU Usage', yaxis="y1")
+    ram_trace = go.Scatter(x=timestamps, y=ram_usage_percentages, mode='lines+markers', name='RAM Usage Percentage', yaxis="y1")
+    load_last_10_mins_trace = go.Scatter(x=timestamps, y=load_avg_last_10_mins, mode='lines+markers', name='Load Avg (10 mins)', yaxis="y2")
 
     file_prefix = str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
 
-    fig = go.Figure([cpu_trace, ram_trace])
+    fig = go.Figure([cpu_trace, ram_trace, load_last_10_mins_trace])
     fig.update_layout(
         title='System Metrics Over Time',
         xaxis_title='Timestamp',
-        yaxis_title='Value',
-        legend_title='Metrics',
+        yaxis_title='Usage %',
+        yaxis=dict(
+            title="Usage %",
+            titlefont=dict(color="blue"),
+            tickfont=dict(color="blue")
+        ),
+        yaxis2=dict(
+            title="Load (AVGs)",
+            titlefont=dict(color="red"),
+            tickfont=dict(color="red"),
+            overlaying='y',
+            side='right'
+        ),
         width=900
     )
 
