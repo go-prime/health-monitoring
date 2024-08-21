@@ -168,7 +168,7 @@ if __name__ == "__main__":
     if not os.path.exists(ping_results_folder):
         os.makedirs(ping_results_folder)
         # Create file
-        with open(os.path.join(ping_results_folder, f'ping_results_{date_string}.json'), 'w') as file:
+        with open(os.path.join(ping_results_folder, f'ping_metrics_{date_string}.json'), 'w') as file:
             json.dump([], file)
 
     logging.info('Starting Up')
