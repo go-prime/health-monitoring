@@ -112,7 +112,7 @@ def process_metrics(url, interval, ping_results_folder):
 
     while True:
         date_string = datetime.date.today().strftime("%Y_%m_%d")
-        output_file = ping_results_folder + f'/ping_results_{date_string}.json'
+        output_file = ping_results_folder + f'/ping_metrics_{date_string}.json'
 
         curr_time = time.strftime("%H:%M")
         curr_date = datetime.datetime.now().date().strftime("%a")

@@ -314,10 +314,11 @@ def generate_ping_metrics_trends_graph(site, data):
 
     timestamps = [get_datetime_string_from_timestamp(entry['timestamp']) for entry in data]
     statuses = [1 if entry['status'] == "success" else 0 for entry in data]
+    successful_pings = [item for item in statuses if item == 1] 
+    status_avg_success = round((len(successful_pings) / len(statuses)), 3) * 100
 
-    status_avg_success = statistics.mean([item for item in statuses])
     ping_breakdown = {
-        'status_avg_success': round(status_avg_success, 5)
+        'status_avg_success': status_avg_success
     }
 
     fig = go.Figure()

@@ -20,7 +20,7 @@ with open(config_file) as config_file:
 
 def generate_report(site_name):
     ping_skipped = conf.get('EXCLUDE_PING_FROM_REPORTING')
-    hardware_skipped = conf.get('EXCLUDE_HARDWARE_FROM_REPORTING')
+    hardware_skipped = conf.get('EXCLUDE_HARDWARE_CHECK_FROM_REPORTING')
     stats_breakdown = ""
 
     if ping_skipped and hardware_skipped:
@@ -58,23 +58,24 @@ def generate_report(site_name):
     load_last_10_mins_avg = hardware_avg.get('load_last_10_mins_avg') if hardware_avg else 0.0
     
     if not ping_skipped:
-        stats_breakdown += f"Average Ping Success: {avg_ping} %\n"
+        stats_breakdown += f"Average Ping Success: {avg_ping} %.\n"
         
     if not hardware_skipped:
-        stats_breakdown += f"""
-        Average Disk Usage: {disk_use_avg} %
-        Average RAM Usage: {ram_use_avg} %
-        Average CPU Usage: {cpu_use_avg} %
-        Load Avg (10 Min): {load_last_10_mins_avg}
-        """
+        stats_breakdown += (
+            f"Average Disk Usage: {disk_use_avg} %.\n"
+            f"Average RAM Usage: {ram_use_avg} %.\n"
+            f"Average CPU Usage: {cpu_use_avg} %.\n"
+            f"Load Avg (10 Min): {load_last_10_mins_avg}."
+        )
 
     subject = f"Daily Report for {site_name}"
-    body = f"""
-    Please find the attached graphics for the daily report for {site_name}.\n\n
     
-    Below is the breakdown of the site's performance:\n
-    {stats_breakdown}\n\n
-    """
+    body = (
+        f"Please find the attached graphics for the daily report for {site_name}.\n\n"
+        f"Below is the breakdown of the site's performance:\n"
+        f"{stats_breakdown}\n"
+    )
+
     attachments = [ping_attachment, hardware_attachment]
 
     logging.info("Sending Email")
