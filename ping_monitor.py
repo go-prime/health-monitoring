@@ -108,8 +108,6 @@ def ping_url(url, output_file):
 
 
 def process_metrics(url, interval, ping_results_folder, site_alert_folder):
-    ping_alarm_stage_triggered = False
-
     while True:
         date_string = datetime.date.today().strftime("%Y_%m_%d")
         output_file = ping_results_folder + f'/ping_metrics_{date_string}.json'
@@ -128,23 +126,24 @@ def process_metrics(url, interval, ping_results_folder, site_alert_folder):
                 
             previous_alert_state_triggered = previous_alert_data.get('alarm_triggered', False)
             
-            if not url_accessed:
+            if not url_accessed and not previous_alert_state_triggered:
+                logging.info('Ping alarm triggered')
                 send_warning_email(
                         site_name=SITE_NAME,
                         cc=MAILING_LIST,
                         ping_alarm_triggered=True,
-                        ping_retries=MAX_RETRY_ATTEMPTS
+                        ping_retries=MAX_RETRY_ATTEMPTS,
+                        last_trigger_time=previous_alert_data.get('last_time_triggered')
                     )
-                if not previous_alert_state_triggered:
-                    logging.info(f"Setting alert from {previous_alert_state_triggered} to {True}")
-                    update_alert_file(alert_file, True)
-                else:
-                    logging.info('Ping alarm still triggered.')
+                update_alert_file(alert_file, alert_triggered=True)
             elif url_accessed and previous_alert_state_triggered:
-                logging.info(f"Setting alert from {previous_alert_state_triggered} to {False}")
-                update_alert_file(alert_file, False)
+                logging.info(f"Setting alert from {previous_alert_state_triggered} to {not url_accessed}")
+                update_alert_file(alert_file, alert_triggered=False)
             else:
-                logging.info('No issues detected.')
+                if not url_accessed:
+                    logging.info('Ping alarm still triggered')
+                else:
+                    logging.info('No issues detected.')
                 
         else:
             logging.info(f'Current TIME:{curr_time} DAY:{curr_date} is outside business hours. Skipping ping monitoring.')
@@ -169,7 +168,7 @@ if __name__ == "__main__":
     trigger_defaults = {
         "alarm_triggered": False,
         "trigger_count": 0,
-        "last_time_triggred": None
+        "last_time_triggered": None
     }
     
     if not os.path.exists(site_alert_folder):
@@ -177,7 +176,7 @@ if __name__ == "__main__":
         # Create file
         alert_file = os.path.join(site_alert_folder, f'alert_status_{date_string}.json')
         with open(alert_file, 'w') as file:
-            json.dump(trigger_defaults, file)
+            json.dump(trigger_defaults, file, indent=4)
 
     logging.info('Starting Up')
     process_metrics(url_to_ping, ping_interval, ping_results_folder, site_alert_folder)
