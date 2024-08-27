@@ -5,7 +5,7 @@ import time
 import datetime
 
 from hardware_metrics import get_cpu_usage, get_disk_usage, get_load_average, get_ram_usage
-from utils import current_time_within_business_hours, export_to_json_file, get_config, send_warning_email
+from utils import current_time_within_business_hours, export_to_json_file, get_config, send_warning_email, update_alert_file
 
 
 logging.basicConfig(filename='logs/ping.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -17,9 +17,6 @@ config = get_config()
 RAM_USAGE_MAX_THRESH_HOLD = config.get('RAM_USAGE_MAX_THRESH_HOLD', 80)
 CPU_USAGE_MAX_THRESH_HOLD = config.get('CPU_USAGE_MAX_THRESH_HOLD', 80)
 HDD_USAGE_MAX_THRESH_HOLD = config.get('HDD_USAGE_MAX_THRESH_HOLD', 80)
-
-# Get maximum number of alarm state triggers
-MAXIMUM_NO_OF_TRIGGERS = config.get('MAXIMUM_NO_OF_ALARM_STATE_TRIGGERS', 3)
 
 # Get hardware check interval in seconds
 HARDWARE_CHECK_INTERVAL = config.get('HARDWARE_CHECK_INTERVAL', 60)
@@ -85,14 +82,7 @@ def record_hardware_metrics(output_file):
     return threshold_exceeded, exceeded_metric_map
 
 
-def process_metrics(interval, hardware_metrics_folder):
-    hardware_alarm_stage_triggered = False
-    threshhold_map = {
-        'cpu_usage': CPU_USAGE_MAX_THRESH_HOLD,
-        'disk_usage': HDD_USAGE_MAX_THRESH_HOLD,
-        'ram_usage': RAM_USAGE_MAX_THRESH_HOLD
-    }
-    
+def process_metrics(interval, hardware_metrics_folder, alert_status_folder):    
     curr_time = time.strftime("%H:%M")
     curr_date = datetime.datetime.now().date().strftime("%a")
 
@@ -104,80 +94,48 @@ def process_metrics(interval, hardware_metrics_folder):
             output_file = os.path.join(hardware_metrics_folder,
                                 f'hardware_metrics_{date_string}.json')
             threshhold_exceeded, exceeded_metrics = record_hardware_metrics(output_file)
-            hardware_triggers = 0
-            hardware_results = []
+            
+            alert_file = os.path.join(alert_status_folder, f'alert_status_{date_string}.json')
 
+            with open(alert_file, 'r') as file:
+                previous_alert_data = json.load(file)
+
+            previous_alert_state_triggered = previous_alert_data.get('alarm_triggered', False)
+            
             if threshhold_exceeded:
-                # Get last 10 hardware metrics results
-                with open(output_file, 'r') as file:
-                    hardware_results = json.load(file)[-10:]
-
-            logging.info(f'Hardware Results: Last 3 {hardware_results[:3]}')
-            logging.info(f'Maximum number of triggers permitted: {MAXIMUM_NO_OF_TRIGGERS}')
-
-            logging.info(f'Assessing Hardware Triggers:')
-            for metric, value in exceeded_metrics.items():
-                logging.info(f'Checking {metric}')
-                logging.info(f'Value: {value}')
-                for result in hardware_results:
-                    if metric == "cpu_usage":
-                        logging.info(f'CPU USAGE: {result.get("cpu_usage", 0.00)}')
-                        logging.info(f'Max Threshold: {threshhold_map[metric]}')
-                        if result.get("cpu_usage", 0) > threshhold_map[metric]:
-                            logging.info('cpu_usage exceeded')
-                            hardware_triggers += 1
-
-                    if metric == "ram_usage":
-                        logging.info(f'RAM USAGE: {result.get("ram_usage_percentage", 0.00)}')
-                        logging.info(f'Max Threshold: {threshhold_map[metric]}')
-                        if result.get("ram_usage_percentage") > threshhold_map[metric]:
-                            logging.info('ram usage exceeded')
-                            hardware_triggers += 1
-
-                    if metric == "disk_usage":
-                        total_usage = result.get('disk_usage_free', 0.0) + result.get('disk_usage_used', 0.0)
-                        used_percentage = (result.get('disk_usage_used') / total_usage or 1) * 100
-                        logging.info(f'DISK USAGE: {result.get("disk_usage_used", 0.00)}')
-                        logging.info(f'Max Threshold: {threshhold_map[metric]}')
-                        logging.info(f'Total Usage: {total_usage}')
-                        logging.info(f'FREE: {result.get("disk_usage_free", 0.0)}')
-                        logging.info(f'USED %: {used_percentage}')
-                        if result.get("disk_usage_used", 0) > threshhold_map[metric]:
-                            logging.info('disk usage exceeded')
-                            hardware_triggers += 1
-                            
-                            
-            logging.info('Finished assessing hardware triggers')
-
-            exceeded_pop = len(exceeded_metrics.items())
-            if exceeded_pop:
-                hardware_alarm_stage_triggered = hardware_triggers >= (MAXIMUM_NO_OF_TRIGGERS/exceeded_pop)
-            else:
-                hardware_alarm_stage_triggered = False
-
-            logging.info(f'Hardware Alarm Stage Triggered: {hardware_alarm_stage_triggered}')
-            logging.info(f'Number of hardware triggers: {hardware_triggers}')
-            logging.info(f'Exceeded Metrics: {len(exceeded_metrics.items())}')
-
-            if threshhold_exceeded:
+                logging.info('Hardware alarm triggered.')
                 send_warning_email(
                     site_name=SITE_NAME,
                     cc=config.get('MAILING_LIST', []),
-                    hardware_alarm_triggered=hardware_alarm_stage_triggered, 
+                    hardware_alarm_triggered=True, 
                     metrics_map=exceeded_metrics
                 )
+
+                if not previous_alert_state_triggered:
+                    logging.info(f"Setting alert from {previous_alert_state_triggered} to {threshhold_exceeded}")
+                    update_alert_file(alert_file, True)
+                else:
+                    logging.info('Hardware alarm still triggered.')
+
+            elif not threshhold_exceeded and previous_alert_state_triggered:
+                logging.info('Hardware alarm no longer triggered.')
+                logging.info(f"Setting alert from {previous_alert_state_triggered} to {threshhold_exceeded}")
+                update_alert_file(alert_file, False)
+            else:
+                logging.info('No hardware issues detected.')
+                    
         else:
             logging.info(f'Current TIME:{curr_time} DAY:{curr_date} is outside business hours. Skipping hardware monitoring.')
-
-        
 
         time.sleep(interval)
 
 
 if __name__ == "__main__":
     hardware_check_interval = HARDWARE_CHECK_INTERVAL
+    site_alert_folder = os.path.join('alert_status', SITE_NAME, "hardware_alert_status")
     hardware_metrics_folder = os.path.join('results', SITE_NAME, 'hardware_metrics')
     date_string = datetime.date.today().strftime("%Y_%m_%d")
+
     if not os.path.exists(hardware_metrics_folder):
         os.makedirs(hardware_metrics_folder)
         # Create file
@@ -185,5 +143,19 @@ if __name__ == "__main__":
         with open(path, 'w') as file:
             json.dump([], file)
 
+    trigger_defaults = {
+        "alarm_triggered": False,
+        "trigger_count": 0,
+        "last_time_triggred": None
+    }
+
+    if not os.path.exists(site_alert_folder):
+        os.makedirs(site_alert_folder)
+        # Create file
+        alert_file = os.path.join(site_alert_folder, f'alert_status_{date_string}.json')
+        with open(alert_file, 'w') as file:
+            json.dump(trigger_defaults, file)
+
+
     logging.info('Starting Up Hardware Monitoring.')
-    process_metrics(hardware_check_interval, hardware_metrics_folder)
+    process_metrics(hardware_check_interval, hardware_metrics_folder, site_alert_folder)

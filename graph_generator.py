@@ -77,11 +77,12 @@ def generate_hardware_graphic(metric):
     return fig
 
 
-def generate_graphic(site_name, metric, metrics_map=None):
+def generate_graphic(site_name, metric):
+    datetime_str = datetime.date.today().strftime("%Y_%m_%d")
 
     metric_source_map = {
-        'hardware': 'hardware_metrics.json',
-        'ping': 'ping_results.json'
+        'hardware': f'hardware_metrics_{datetime_str}.json',
+        'ping': f'ping_metrics_{datetime_str}.json'
     }
 
     subfolder_map = {
@@ -98,7 +99,7 @@ def generate_graphic(site_name, metric, metrics_map=None):
     if not subfolder:
         raise ValueError("Invalid metric specified")
 
-    if not check_file_exists(f'results/{site_name}/{subfolder}/{source_file}'):
+    if not check_file_exists(f'results/{site_name}/{subfolder}/{source_file}') and metric == "ping":
         raise FileNotFoundError("Ping results file not found")
 
     # load ping results
@@ -337,8 +338,10 @@ def generate_ping_metrics_trends_graph(site, data):
     return os.path.join(exports_folder, f'{file_prefix}_ping_metrics_trends.png'), ping_breakdown
 
 
-def generate_graphs_for_daily_report(site_name, hardware_source_file=None, ping_source_file=None):
+def generate_graphs_for_daily_report(site_name, hardware_source_file=None, ping_source_file=None, last_n_items=None):
     # hardware_data
+    # last n items fetches the latest n items from data list
+    # as a reflection of time the total period covered will be last_n_items x ping/hardware_check_interval
     hardware_graph_file = None
     ping_graph_file = None
     breakdown = {}
@@ -346,6 +349,9 @@ def generate_graphs_for_daily_report(site_name, hardware_source_file=None, ping_
     if hardware_source_file:
         with open(hardware_source_file) as hardware_file:
             hardware_data = json.load(hardware_file)
+            # get last n items if set
+            if last_n_items:
+                hardware_data = hardware_data[-last_n_items:]
         hardware_graph_file, breakdown["hardware"] = generate_hardware_metrics_trends_graph(site_name, hardware_data)
 
 
@@ -353,6 +359,8 @@ def generate_graphs_for_daily_report(site_name, hardware_source_file=None, ping_
     if ping_source_file:
         with open(ping_source_file) as ping_file:
             ping_data = json.load(ping_file)
+            if last_n_items:
+                ping_data = ping_data[-last_n_items:]
         ping_graph_file, breakdown["ping"] = generate_ping_metrics_trends_graph(site_name, ping_data)
 
     return hardware_graph_file, ping_graph_file, breakdown

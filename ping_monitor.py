@@ -7,7 +7,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from utils import current_time_within_business_hours, export_to_json_file, send_warning_email
+from utils import current_time_within_business_hours, export_to_json_file, send_warning_email, update_alert_file
 
 
 # Set up logging
@@ -107,12 +107,13 @@ def ping_url(url, output_file):
     return connected
 
 
-def process_metrics(url, interval, ping_results_folder):
+def process_metrics(url, interval, ping_results_folder, site_alert_folder):
     ping_alarm_stage_triggered = False
 
     while True:
         date_string = datetime.date.today().strftime("%Y_%m_%d")
         output_file = ping_results_folder + f'/ping_metrics_{date_string}.json'
+        alert_file = site_alert_folder + f'/alert_status_{date_string}.json'
 
         curr_time = time.strftime("%H:%M")
         curr_date = datetime.datetime.now().date().strftime("%a")
@@ -122,36 +123,29 @@ def process_metrics(url, interval, ping_results_folder):
             logging.info(f'Current TIME:{curr_time} DAY:{curr_date} within business hours')
             url_accessed = ping_url(url, output_file)
             
+            with open(alert_file, 'r') as file:
+                previous_alert_data = json.load(file)
+                
+            previous_alert_state_triggered = previous_alert_data.get('alarm_triggered', False)
+            
             if not url_accessed:
-                # Get last 10 ping results
-                with open(output_file, 'r') as file:
-                    ping_results = json.load(file)[-10:]
-
-                logging.info(f'Ping Results: Last 3 {ping_results[:3]}')
-                logging.info(f'Maximum number of triggers permitted: {MAXIMUM_NO_OF_TRIGGERS}')
-
-
-                logging.info(f'Assessing Ping Triggers:')
-                logging.info(f'{str(["x" for r in ping_results if r.get("status") == "failure"])}')
-
-                fail_list = [result for result in ping_results if result.get('status') == 'failure']
-
-                logging.info(f'Ping failures: {fail_list}')
-
-                no_of_ping_failures = len(fail_list)
-
-                logging.info(f'Number of ping failures: {no_of_ping_failures}')
-                if no_of_ping_failures >= MAXIMUM_NO_OF_TRIGGERS:
-                    ping_alarm_stage_triggered = True
-
-                logging.info(f'Ping Alarm Stage Triggered: {ping_alarm_stage_triggered}')
-
                 send_warning_email(
-                    site_name=SITE_NAME,
-                    cc=MAILING_LIST,
-                    ping_alarm_triggered=ping_alarm_stage_triggered,
-                    ping_retries=MAX_RETRY_ATTEMPTS
-                )
+                        site_name=SITE_NAME,
+                        cc=MAILING_LIST,
+                        ping_alarm_triggered=True,
+                        ping_retries=MAX_RETRY_ATTEMPTS
+                    )
+                if not previous_alert_state_triggered:
+                    logging.info(f"Setting alert from {previous_alert_state_triggered} to {True}")
+                    update_alert_file(alert_file, True)
+                else:
+                    logging.info('Ping alarm still triggered.')
+            elif url_accessed and previous_alert_state_triggered:
+                logging.info(f"Setting alert from {previous_alert_state_triggered} to {False}")
+                update_alert_file(alert_file, False)
+            else:
+                logging.info('No issues detected.')
+                
         else:
             logging.info(f'Current TIME:{curr_time} DAY:{curr_date} is outside business hours. Skipping ping monitoring.')
 
@@ -164,12 +158,26 @@ if __name__ == "__main__":
 
     # create sites results folder if it doesn't exist
     ping_results_folder = os.path.join('results', SITE_NAME, 'ping_metrics')
+    site_alert_folder = os.path.join('alert_status', SITE_NAME, "ping_alert_status")
     date_string = datetime.date.today().strftime("%Y_%m_%d")
     if not os.path.exists(ping_results_folder):
         os.makedirs(ping_results_folder)
         # Create file
         with open(os.path.join(ping_results_folder, f'ping_metrics_{date_string}.json'), 'w') as file:
             json.dump([], file)
+            
+    trigger_defaults = {
+        "alarm_triggered": False,
+        "trigger_count": 0,
+        "last_time_triggred": None
+    }
+    
+    if not os.path.exists(site_alert_folder):
+        os.makedirs(site_alert_folder)
+        # Create file
+        alert_file = os.path.join(site_alert_folder, f'alert_status_{date_string}.json')
+        with open(alert_file, 'w') as file:
+            json.dump(trigger_defaults, file)
 
     logging.info('Starting Up')
-    process_metrics(url_to_ping, ping_interval, ping_results_folder)
+    process_metrics(url_to_ping, ping_interval, ping_results_folder, site_alert_folder)

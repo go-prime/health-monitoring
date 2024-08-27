@@ -231,3 +231,21 @@ def current_time_within_business_hours():
     business_finishing_hour = datetime.datetime.strptime(business_finishing_hour, "%H:%M").time()
 
     return business_starting_hour <= current_time <= business_finishing_hour
+
+
+def update_alert_file(alertFile, triggered):
+    logging.info(f"Updating alert file: {alertFile}")
+    if not os.path.exists(os.path.dirname(alertFile)):
+        os.makedirs(os.path.dirname(alertFile))
+
+    with open(alertFile, 'r+') as file:
+        data = json.load(file)
+        data['alarm_triggered'] = triggered
+        if triggered:
+            data['trigger_count'] += 1 
+            data['last_time_triggred'] = time.time()
+            
+        file.seek(0)
+        json.dump(data, file, indent=4)
+        
+        file.truncate()

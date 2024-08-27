@@ -4,6 +4,7 @@ from mailer import send_email
 from utils import get_abs_path, get_latest_json_file, get_config
 import os
 import json
+import sys
 
 
 log_file = 'logs/daily_report.log'
@@ -18,7 +19,7 @@ with open(config_file) as config_file:
     conf = json.load(config_file)
 
 
-def generate_report(site_name):
+def generate_report(site_name, last_n_items=None):
     ping_skipped = conf.get('EXCLUDE_PING_FROM_REPORTING')
     hardware_skipped = conf.get('EXCLUDE_HARDWARE_CHECK_FROM_REPORTING')
     stats_breakdown = ""
@@ -44,7 +45,8 @@ def generate_report(site_name):
     hardware_attachment, ping_attachment, stats = generate_graphs_for_daily_report(
         site_name=site_name,
         hardware_source_file=hardware_source_file,
-        ping_source_file=ping_source_file
+        ping_source_file=ping_source_file,
+        last_n_items=last_n_items
     )
     logging.info("Graphs Generated Successfully")
 
@@ -68,7 +70,7 @@ def generate_report(site_name):
             f"Load Avg (10 Min): {load_last_10_mins_avg}."
         )
 
-    subject = f"Daily Report for {site_name}"
+    subject = f"Daily Report for {site_name}" if not last_n_items else f"Recent Activity Report for {site_name} (Last {last_n_items} Items)."
     
     body = (
         f"Please find the attached graphics for the daily report for {site_name}.\n\n"
@@ -84,4 +86,8 @@ def generate_report(site_name):
 
     send_email(conf.get('MAILING_LIST'), subject=subject, body=body, attachments=attachments)
 
-generate_report(conf.get('SITE_NAME'))
+
+if __name__ == "__main__":
+    site_name = sys.argv[1] if len(sys.argv) > 1 else conf.get('SITE_NAME')
+    last_n_items = int(sys.argv[2]) if len(sys.argv) > 2 else None
+    generate_report(site_name, last_n_items)
