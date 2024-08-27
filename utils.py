@@ -254,7 +254,8 @@ def update_alert_file(alertFile, alert_triggered=None, hardware_metrics=None):
                 # Logging trigger counts
                 data[f"{metric}_trigger_count"] += 1 if hardware_metrics.get(f'{metric}_exceeded') else 0
                 # Logging time
-                data[f"{metric}_last_trigger_time"] = time_stamp if hardware_metrics.get(f'{metric}_exceeded') else data.get(f"{metric}_last_trigger_time")
+                if hardware_metrics.get(f'{metric}_exceeded'):
+                    data[f"{metric}_last_trigger_time"] = time_stamp
                 # Setting New States
                 data[f"{metric}_exceeded"] = hardware_metrics.get(f'{metric}_exceeded')
                 # Setting Metrics
