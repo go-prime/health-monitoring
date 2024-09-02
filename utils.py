@@ -4,7 +4,7 @@ import logging
 import datetime
 import time
 
-from graph_generator import generate_graphic
+from graph_generator import generate_graphic, get_datetime_string_from_timestamp
 from mailer import send_email
 
 
@@ -122,7 +122,9 @@ def send_warning_email(site_name,
                        ping_alarm_triggered=None,
                        ping_retries=None,
                        hardware_alarm_triggered=None,
-                       metrics_map=None):
+                       metrics_map=None,
+                       last_trigger_time=None
+                       ):
     issues = []
     subject = ""
     attachments = []
@@ -163,12 +165,15 @@ def send_warning_email(site_name,
     issue_message = ''
     for num, issue in enumerate(issues, start=1):
         issue_message += f"{num}. {issue}\n"
+        
+    last_trigger_time = get_datetime_string_from_timestamp(last_trigger_time) if last_trigger_time else "N/A"
 
     msg = (
         f"Greetings,\n\n"
         f"Kindly note that the site {site_name}'s Metrics are not optimal. Please check the attached graphics for more details.\n\n"
         f"The following parameters have been breached:\n\n"
         f"{issue_message}\n"
+        f"Last trigger time: {last_trigger_time}\n\n"
         f"Regards"
     )
 
@@ -231,3 +236,71 @@ def current_time_within_business_hours():
     business_finishing_hour = datetime.datetime.strptime(business_finishing_hour, "%H:%M").time()
 
     return business_starting_hour <= current_time <= business_finishing_hour
+
+
+def update_alert_file(alertFile, alert_triggered=None, hardware_metrics=None):
+    logging.info(f"Updating alert file: {alertFile}")
+    if not os.path.exists(os.path.dirname(alertFile)):
+        os.makedirs(os.path.dirname(alertFile))
+
+    with open(alertFile, 'r+') as file:
+        data = json.load(file)
+        time_stamp = time.time()
+        
+        if hardware_metrics:
+            logging.info("Updating hardware metrics on alert file.")
+            # Update trigger counts and states in a loop to reduce redundancy
+            for metric in ['cpu_usage', 'ram_usage', 'disk_usage']:
+                # Logging trigger counts
+                data[f"{metric}_trigger_count"] += 1 if hardware_metrics.get(f'{metric}_exceeded') else 0
+                # Logging time
+                if hardware_metrics.get(f'{metric}_exceeded'):
+                    data[f"{metric}_last_trigger_time"] = time_stamp
+                # Setting New States
+                data[f"{metric}_exceeded"] = hardware_metrics.get(f'{metric}_exceeded')
+                # Setting Metrics
+                data[f"{metric}"] = hardware_metrics.get(metric)
+        else:
+            logging.info("Updating ping metrics on alert file.")
+            data['alarm_triggered'] = alert_triggered
+            if alert_triggered:
+                data["last_time_triggered"] = time_stamp
+            data["trigger_count"] += 1 if alert_triggered else 0
+            
+
+        file.seek(0)
+        json.dump(data, file, indent=4)
+
+        file.truncate()
+
+
+def send_warning_email_for_metric(site_name, 
+                       cc,
+                       metric,
+                       metrc_measure,
+                       previous_alert_data
+                       ):
+    attachments = []
+    label = " ".join([word.capitalize() for word in metric.split('_')])
+    subject = f"Hardware Threshhold Breach: {label} on {site_name}"
+    last_trigger_time = previous_alert_data.get(f'{metric}_last_trigger_time')
+    last_trigger_time = get_datetime_string_from_timestamp(last_trigger_time) if last_trigger_time else "N/A."
+    
+    logging.info(f"Sending warning email for {label} breach on {site_name}")
+    
+    logging.info("Generating graphics")
+    
+    attachments.append(get_latest_graphic(site_name, metric='hardware', metric_param=metric))
+
+    msg = (
+        f"Greetings,\n\n"
+        f"Kindly note that the site {site_name}'s {label} has breached it's threshold. Please check the attached graphic for your perusal.\n\n"
+        f"The following parameters have been breached:\n\n"
+        f"{label} currently has a value of {metrc_measure} %.\n"
+        f"Previous trigger time: {last_trigger_time}\n"
+        f"Regards"
+    )
+
+    # send email with graphic attachment
+    logging.info("Sending email")
+    send_email(cc, subject, msg, attachments)

@@ -24,7 +24,6 @@
 "MAX_RETRY_ATTEMPTS": 4,
 "SITE_NAME": "test", # in order to uniquely id graph and metric folders
 "MAX_FOLDER_SIZE": 1000,# in mb to determine max size of graph for each site
-"MAXIMUM_NO_OF_ALARM_STATE_TRIGGERS": 5, # the number of triggers in the last 10 iterations that will set off an alert.
 "EXCLUDE_PING_FROM_REPORTING": true,
 "EXCLUDE_HARDWARE_CHECK_FROM_REPORTING": false,
 "BUSINESS_DAY_START": "09:00", # used to validate working hours
@@ -109,6 +108,19 @@ crontab -e
 # Query cron jobs
 
 crontab -l
+```
+
+# 6.b Recent Activity Reporting
+
+* To generate report for recent activty
+* Passing the arg: last n items will return results for the last n recorded results
+* If interval is set at 60 for 60 seconds and the arg is set to 30 the report will return activity for the last 30 mins
+* Period covered = last_n_items * interval
+* set a shell script and provide the argument to report generate
+
+```
+# bash
+path_to_venv  project_dir/report_generator.py "SITE_NAME" 30
 ```
 
 # Third-Party Libraries
