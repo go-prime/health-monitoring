@@ -204,9 +204,17 @@ def generate_graphic(site_name, metric):
         raise ValueError("Invalid metric specified")
 
 
-def generate_hardware_metrics_trends_graph(site, data):
+def generate_hardware_metrics_trends_graph(site, data, time_scoped_filtered=False, last_n_filtered=False):
     if not data:
         return
+
+    filter_label = ''
+    
+    if time_scoped_filtered:
+        filter_label = "Filtered By Time"
+    
+    if last_n_filtered:
+        filter_label = "Latest Records"
 
     hardware_breakdown = {}
     sub_folder = 'hardware_metrics'
@@ -214,10 +222,6 @@ def generate_hardware_metrics_trends_graph(site, data):
 
     if not os.path.exists(exports_folder):
         os.makedirs(exports_folder)
-
-    # clear folder before generating new graphs
-    for file in os.listdir(exports_folder):
-        os.remove(os.path.join(exports_folder, file))
 
     start = time.mktime((datetime.datetime.now() - datetime.timedelta(hours=8)).timetuple())
     timestamps = [get_datetime_string_from_timestamp(entry['timestamp']) for entry in data if entry['timestamp'] > start]
@@ -251,7 +255,7 @@ def generate_hardware_metrics_trends_graph(site, data):
 
     fig = go.Figure([cpu_trace, ram_trace, load_last_10_mins_trace])
     fig.update_layout(
-        title='System Metrics Over Time',
+        title=f'System Metrics Over Time {filter_label}',
         xaxis_title='Timestamp',
         yaxis_title='Usage %',
         yaxis=dict(
@@ -269,8 +273,17 @@ def generate_hardware_metrics_trends_graph(site, data):
         width=900
     )
 
-    fig.write_image(os.path.join(exports_folder, f'{file_prefix}_hardware_metrics_trends.png'))
-    return os.path.join(exports_folder, f'{file_prefix}_hardware_metrics_trends.png'), hardware_breakdown
+    filter_string = ''
+    if time_scoped_filtered:
+        filter_string = "time_scoped"
+    elif last_n_filtered:
+        filter_string = "latest_trends"
+    else:
+        filter_string = ''
+    
+    export_path = os.path.join(exports_folder, f'{file_prefix}_{filter_string}_hardware_metrics_trends.png')
+    fig.write_image(export_path)
+    return export_path, hardware_breakdown
 
 
 def generate_ping_metrics_trends_graph(site, data):
@@ -313,7 +326,14 @@ def generate_ping_metrics_trends_graph(site, data):
     return os.path.join(exports_folder, f'{file_prefix}_ping_metrics_trends.png'), ping_breakdown
 
 
-def generate_graphs_for_daily_report(site_name, hardware_source_file=None, ping_source_file=None, last_n_items=None):
+def generate_graphs_for_daily_report(site_name,
+                                     hardware_source_file=None,
+                                     ping_source_file=None,
+                                     last_n_items=None,
+                                     scoped_time_stamp=None
+                                     ):
+    from utils import get_data_scoped_by_time_stamp
+
     # hardware_data
     # last n items fetches the latest n items from data list
     # as a reflection of time the total period covered will be last_n_items x ping/hardware_check_interval
@@ -322,12 +342,23 @@ def generate_graphs_for_daily_report(site_name, hardware_source_file=None, ping_
     breakdown = {}
 
     if hardware_source_file:
+        last_n_filtered = last_n_items is not None
+        time_scoped_filtered = scoped_time_stamp is not None
         with open(hardware_source_file) as hardware_file:
             hardware_data = json.load(hardware_file)
             # get last n items if set
             if last_n_items:
                 hardware_data = hardware_data[-last_n_items:]
-        hardware_graph_file, breakdown["hardware"] = generate_hardware_metrics_trends_graph(site_name, hardware_data)
+            if scoped_time_stamp:
+                hardware_data = get_data_scoped_by_time_stamp(
+                    timestamp=scoped_time_stamp,
+                    data=hardware_data
+                )
+        hardware_graph_file, breakdown["hardware"] = generate_hardware_metrics_trends_graph(site_name, 
+                                                                                            hardware_data,
+                                                                                            last_n_filtered=last_n_filtered,
+                                                                                            time_scoped_filtered=time_scoped_filtered
+                                                                                            )
 
 
     # ping data
