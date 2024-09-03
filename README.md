@@ -17,6 +17,7 @@
 "PING_URL": "https://example.com",
 "PING_INTERVAL": 60, # in seconds
 "MAILING_LIST": ["james@chitubu.co.zw", "smoyo@gmail.com"],
+"ADHOC_MAILING_LIST": ["james@chitubu.co.zw", "smoyo@gmail.com"], # List for adhoc reports
 "MAILER_EMAIL": "mailer@service.mail",
 "MAILER_PASSWORD": "p@55w0rd",
 "SMTP_SERVER": "smtp.gmail.com", # depending on service used
