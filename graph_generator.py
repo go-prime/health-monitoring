@@ -17,64 +17,39 @@ def get_datetime_string_from_timestamp(timestamp):
     return datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
 
-def generate_hardware_graphic(metric):
-    if metric == 'cpu_usage':
-        # create pie chart showing cpu usage
-        cpu_times = psutil.cpu_times_percent(interval=1, percpu=False)
-        cpu_usage = {
-            'User': cpu_times.user,
-            'System': cpu_times.system,
-            'Idle': cpu_times.idle
-        }
-        cpu_usage = {k: v for k, v in cpu_usage.items() if v > 0}
-        fig = go.Figure(data=[go.Pie(labels=list(cpu_usage.keys()), values=list(cpu_usage.values()))])
+def generate_hardware_graphic(metric, sitename, metric_value):
+    exports_folder = get_export_folder(site_name=sitename, metric=metric)
+    
+    date_time_string = datetime.date.today().strftime("%Y_%m_%d")
+    file_name = f'{metric}_warning_{date_time_string}.png'
+    export_path = os.path.join(exports_folder, "warnings")
+    
+    if not os.path.exists(export_path):
+        os.makedirs(export_path)
+        
+    file_loc = os.path.join(export_path, file_name)
+    
+    # Create a pie chart
+    fig = go.Figure(data=[go.Pie(
+        labels=["Used", "Free"],
+        values=[metric_value, 100 - metric_value],
+        hole=.3
+    )])
+    
+    label = " ".join(metric.split("_")).title()
+    # Set chart title
+    fig.update_layout(
+        title_text=f"{label} Warning.",
+        annotations=[dict(text=f"{metric_value}%", x=0.5, y=0.5, font_size=20, showarrow=False)],
+        width=900
+    )
 
-        fig.update_layout(
-            title_text='Current CPU Usage Distribution: Measured',
-            annotations=[dict(text='CPU', x=0.5, y=0.5, font_size=20, showarrow=False)]
-        )
+    fig.write_image(file_loc)
+    return file_loc
 
-    if metric == 'ram_usage':
-        virtual_memory = psutil.virtual_memory()
-        ram_usage = {
-            'Used': virtual_memory.used,
-            'Avalaible': virtual_memory.free,
-            'Percent %': virtual_memory.percent
-        }
 
-        # Filter out zero values to avoid clutter
-        ram_usage = {k: v for k, v in ram_usage.items() if v > 0}
-
-        # Convert bytes to gig
-        ram_usage = {k: v / (1024 ** 3) for k, v in ram_usage.items()}
-
-        # Create the pie chart
-        fig = go.Figure(data=[go.Pie(labels=list(ram_usage.keys()), values=list(ram_usage.values()), hole=.3)])
-
-        fig.update_layout(
-            title_text=f'RAM Usage Distribution: Measured',
-            annotations=[dict(text='RAM', x=0.5, y=0.5, font_size=20, showarrow=False)]
-        )
-
-    if metric == 'disk_usage':
-        disk_usage = psutil.disk_usage('/')
-        disk_usage = {
-            'Used': disk_usage.used,
-            'Free': disk_usage.free
-        }
-
-        # Convert bytes to gigabytes
-        disk_usage_data = {k: v / (1024 ** 3) for k, v in disk_usage_data.items()}
-
-        # Create the pie chart
-        fig = go.Figure(data=[go.Pie(labels=list(disk_usage_data.keys()), values=list(disk_usage_data.values()), hole=.3)])
-
-        fig.update_layout(
-            title_text=f'Disk Usage Distribution: Measured:',
-            annotations=[dict(text='Disk', x=0.5, y=0.5, font_size=20, showarrow=False)]
-        )
-
-    return fig
+def get_export_folder(site_name, metric):
+    return os.path.join('exports', 'images', site_name, metric)
 
 
 def generate_graphic(site_name, metric):

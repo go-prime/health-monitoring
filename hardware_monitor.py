@@ -108,7 +108,7 @@ def evaulate_metric(previous_state, current_state, metric):
             site_name=SITE_NAME,
             cc=MAILING_LIST,
             metric=metric,
-            metrc_measure=current_state.get(metric, 0.0),
+            metric_measure=current_state.get(metric, 0.0),
             previous_alert_data=previous_state
         )
     elif previous_state_exceeded and not current_state_exceeded:

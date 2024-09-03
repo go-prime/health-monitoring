@@ -4,7 +4,7 @@ import logging
 import datetime
 import time
 
-from graph_generator import generate_graphic, get_datetime_string_from_timestamp
+from graph_generator import generate_graphic, generate_hardware_graphic, get_datetime_string_from_timestamp
 from mailer import send_email
 
 
@@ -277,7 +277,7 @@ def update_alert_file(alertFile, alert_triggered=None, hardware_metrics=None):
 def send_warning_email_for_metric(site_name, 
                        cc,
                        metric,
-                       metrc_measure,
+                       metric_measure,
                        previous_alert_data
                        ):
     attachments = []
@@ -290,13 +290,16 @@ def send_warning_email_for_metric(site_name,
     
     logging.info("Generating graphics")
     
-    attachments.append(get_latest_graphic(site_name, metric='hardware', metric_param=metric))
+    metric_graphic = generate_hardware_graphic(metric, site_name, metric_measure)
+    
+    logging.info(f'Attaching graphic at {metric_graphic}')
+    attachments.append(metric_graphic)
 
     msg = (
         f"Greetings,\n\n"
         f"Kindly note that the site {site_name}'s {label} has breached it's threshold. Please check the attached graphic for your perusal.\n\n"
         f"The following parameters have been breached:\n\n"
-        f"{label} currently has a value of {metrc_measure} %.\n"
+        f"{label} currently has a value of {metric_measure} %.\n"
         f"Previous trigger time: {last_trigger_time}\n"
         f"Regards"
     )
