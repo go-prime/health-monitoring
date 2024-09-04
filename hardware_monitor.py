@@ -193,7 +193,10 @@ if __name__ == "__main__":
     if not os.path.exists(site_alert_folder):
         os.makedirs(site_alert_folder)
         # Create file
-        alert_file = os.path.join(site_alert_folder, f'alert_status_{date_string}.json')
+
+    alert_file = os.path.join(site_alert_folder, f'alert_status_{date_string}.json')
+
+    if not os.path.exists(alert_file):
         with open(alert_file, 'w') as file:
             json.dump(trigger_defaults, file, indent=4)
 
