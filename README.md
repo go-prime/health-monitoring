@@ -134,8 +134,9 @@ path_to_venv  project_dir/report_generator.py "SITE_NAME" 30
 
 # Issues
 
-* Need a recommened way to allow report generator to do restarts
-* Need to create seperate graphs for hardware metrics
-* Need to expand metrics being tracked
+* ~~Need a recommened way to allow report generator to do restarts~~
+* ~~Need to create seperate graphs for hardware metrics~~
+* ~~Need to expand metrics being tracked~~
 * Need to implement a strategy to manage logfile size
-* Need to reimplement alerting logic. The tests have shown that concerning parameter peaks are not being alerted. The logic is falling short
+~~* Need to reimplement alerting logic. The tests have shown that concerning parameter peaks are not being alerted. The logic is falling short~~
+* Need to resolve issue indexing timestamps for graphs. Likely introduced by dynamic filtering using timescoped and last n items
