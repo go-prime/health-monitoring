@@ -25,7 +25,7 @@ def generate_report(site_name, last_n_items=None):
     hardware_skipped = conf.get('EXCLUDE_HARDWARE_CHECK_FROM_REPORTING')
     stats_breakdown = ""
 
-    if not current_time_within_business_hours() and last_n_items is None:
+    if not current_time_within_business_hours(check_working_days_only=True) and last_n_items is None:
         logging.info(
             "Skipping Daily Report: " +
             f"{str(datetime.datetime.now().strftime('%a'))} outside working week."
