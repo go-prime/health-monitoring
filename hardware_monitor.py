@@ -31,6 +31,7 @@ MAILING_LIST = config.get('MAILING_LIST', [])
 def record_hardware_metrics(output_file):
     results = []
     metric_map = {
+        "timestamp": None,
         "cpu_usage": 0.0,
         "cpu_usage_exceeded": False,
         "ram_usage": 0.0,
@@ -65,6 +66,10 @@ def record_hardware_metrics(output_file):
     logging.info(f'Logging to {output_file}')
     export_to_json_file(results, output_file)
 
+    # Recording time stamp
+    logging.info(f"Recording Hardware record timestamp: {timestamp}")
+    metric_map['timestamp'] = timestamp
+
     # CPU usage
     cpu_usage_exceeded = cpu_usage.get('cpu_usage', 0.0) > CPU_USAGE_MAX_THRESH_HOLD
     metric_map['cpu_usage'] = cpu_usage.get('cpu_usage', 0.0)
@@ -92,7 +97,7 @@ def record_hardware_metrics(output_file):
     return metric_map
 
 
-def evaulate_metric(previous_state, current_state, metric):
+def evaulate_metric(previous_state, current_state, metric, output_file):
     logging.info(f'Now Assessing: {metric}')
     
     previous_state_exceeded = previous_state.get(f'{metric}_exceeded', False)
@@ -108,8 +113,10 @@ def evaulate_metric(previous_state, current_state, metric):
             site_name=SITE_NAME,
             cc=MAILING_LIST,
             metric=metric,
-            metrc_measure=current_state.get(metric, 0.0),
-            previous_alert_data=previous_state
+            metric_measure=current_state.get(metric, 0.0),
+            previous_alert_data=previous_state,
+            source_file=output_file,
+            scoped_time_stamp=current_state.get("timestamp")
         )
     elif previous_state_exceeded and not current_state_exceeded:
         logging.info(f'Hardware alarm no longer triggered for {metric}')
@@ -120,9 +127,9 @@ def evaulate_metric(previous_state, current_state, metric):
             logging.info(f'No hardware issues detected for {metric}')
 
 
-def evaluate_hardware_metrics(metric_map, previous_alert_state):
+def evaluate_hardware_metrics(metric_map, previous_alert_state, output_file):
     for metric in ["cpu_usage", "disk_usage", "ram_usage"]:
-        evaulate_metric(previous_alert_state, metric_map, metric)
+        evaulate_metric(previous_alert_state, metric_map, metric, output_file)
 
 
 def process_metrics(interval, hardware_metrics_folder, alert_status_folder):    
@@ -143,7 +150,7 @@ def process_metrics(interval, hardware_metrics_folder, alert_status_folder):
             with open(alert_file, 'r') as file:
                 previous_alert_data = json.load(file)
 
-            evaluate_hardware_metrics(monitored_metrics, previous_alert_data)
+            evaluate_hardware_metrics(monitored_metrics, previous_alert_data, output_file)
             logging.info('Hardware evaluation completed.')
             logging.info('Now Updating alert file')
             update_alert_file(alertFile=alert_file, hardware_metrics=monitored_metrics)
@@ -186,7 +193,10 @@ if __name__ == "__main__":
     if not os.path.exists(site_alert_folder):
         os.makedirs(site_alert_folder)
         # Create file
-        alert_file = os.path.join(site_alert_folder, f'alert_status_{date_string}.json')
+
+    alert_file = os.path.join(site_alert_folder, f'alert_status_{date_string}.json')
+
+    if not os.path.exists(alert_file):
         with open(alert_file, 'w') as file:
             json.dump(trigger_defaults, file, indent=4)
 

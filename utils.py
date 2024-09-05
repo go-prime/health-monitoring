@@ -4,7 +4,7 @@ import logging
 import datetime
 import time
 
-from graph_generator import generate_graphic, get_datetime_string_from_timestamp
+from graph_generator import generate_graphic, generate_graphs_for_daily_report, generate_hardware_graphic, get_datetime_string_from_timestamp
 from mailer import send_email
 
 
@@ -277,26 +277,63 @@ def update_alert_file(alertFile, alert_triggered=None, hardware_metrics=None):
 def send_warning_email_for_metric(site_name, 
                        cc,
                        metric,
-                       metrc_measure,
-                       previous_alert_data
+                       metric_measure,
+                       previous_alert_data,
+                       source_file,
+                       scoped_time_stamp
                        ):
     attachments = []
     label = " ".join([word.capitalize() for word in metric.split('_')])
     subject = f"Hardware Threshhold Breach: {label} on {site_name}"
     last_trigger_time = previous_alert_data.get(f'{metric}_last_trigger_time')
     last_trigger_time = get_datetime_string_from_timestamp(last_trigger_time) if last_trigger_time else "N/A."
+    trend_graph = None
+    export_folder = ''
     
     logging.info(f"Sending warning email for {label} breach on {site_name}")
     
     logging.info("Generating graphics")
     
-    attachments.append(get_latest_graphic(site_name, metric='hardware', metric_param=metric))
+    metric_graphic = generate_hardware_graphic(metric, site_name, metric_measure)
+    
+    intervals = int(get_interval_in_minutes('hardware') * 60)
+    logging.info(f"Generating graphic trends for the last hour: {intervals} intervals")
+    logging.info(f"Source for trends for the last hour: {source_file} intervals")
+    
+    last_hr_trends = generate_graphs_for_daily_report(
+        site_name=site_name,
+        hardware_source_file=source_file,
+        last_n_items=intervals
+    )
+    
+    # Generate and attach graph of last hour worth or records
+    if last_hr_trends:
+        trend_graph = last_hr_trends[0]
+        logging.info(f"Adding last hr trend graph to attachements {trend_graph}")
+        attachments.append(trend_graph)
+        export_folder = os.path.dirname(trend_graph)
+        
+    # Generate graphic for n: 10 records before and after recorded spike
+    time_scoped_graphic = generate_graphs_for_daily_report(
+        site_name=site_name,
+        hardware_source_file=source_file,
+        scoped_time_stamp=scoped_time_stamp
+    )
+    
+    if time_scoped_graphic:
+        scoped_graph = time_scoped_graphic[0]
+        logging.info(f"Adding time scoped graph {scoped_time_stamp} to attachments {scoped_graph}")
+        attachments.append(scoped_graph)
+        export_folder = os.path.dirname(trend_graph)
+
+    logging.info(f'Attaching graphic at {metric_graphic}')
+    attachments.append(metric_graphic)
 
     msg = (
         f"Greetings,\n\n"
         f"Kindly note that the site {site_name}'s {label} has breached it's threshold. Please check the attached graphic for your perusal.\n\n"
         f"The following parameters have been breached:\n\n"
-        f"{label} currently has a value of {metrc_measure} %.\n"
+        f"{label} currently has a value of {metric_measure} %.\n"
         f"Previous trigger time: {last_trigger_time}\n"
         f"Regards"
     )
@@ -304,3 +341,42 @@ def send_warning_email_for_metric(site_name,
     # send email with graphic attachment
     logging.info("Sending email")
     send_email(cc, subject, msg, attachments)
+    
+    if export_folder:
+        logging.info("Now clearing directory")
+        clear_folder(export_folder)
+    
+
+
+def get_interval_in_minutes(metric):
+    metric_interval_map = {
+        "hardware": "HARDWARE_CHECK_INTERVAL",
+        "ping": "PING_INTERVAL"
+    }
+    conf = get_config()
+    # Return interval in minutes
+    return conf.get(metric_interval_map.get(metric.lower()), 60) / 60
+
+
+def get_data_scoped_by_time_stamp(timestamp, data, n=10):
+    logging.info(f"Timestamp Recorded - {timestamp}")
+    data_sorted = sorted(data, key=lambda x: x['timestamp'])
+    
+    index = -1
+    for i, entry in enumerate(data_sorted):
+        if entry['timestamp'] <= timestamp:
+            index = i
+        else:
+            break
+        
+    start_index = max(0, index - 10)
+    end_index = min(len(data_sorted), index + 11)
+    return data_sorted[start_index: end_index]
+
+def clear_folder(folder):
+    # clear folder before generating new graphs
+    if not os.path.exists(folder):
+        return
+
+    for file in os.listdir(folder):
+        os.remove(os.path.join(folder, file))

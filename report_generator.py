@@ -83,8 +83,12 @@ def generate_report(site_name, last_n_items=None):
     logging.info("Sending Email")
     logging.info(f"Subject: {subject}")
     logging.info(f"Body: {body}")
+    
+    mailing_list = conf.get('MAILING_LIST') if not last_n_items else conf.get('ADHOC_MAILING_LIST')
+    
+    logging.info(f"Confirmed Mailing List {str(mailing_list)}")
 
-    send_email(conf.get('MAILING_LIST'), subject=subject, body=body, attachments=attachments)
+    send_email(mailing_list, subject=subject, body=body, attachments=attachments)
 
 
 if __name__ == "__main__":
