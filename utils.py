@@ -204,7 +204,7 @@ def get_latest_json_file(site_name, metric):
 def get_abs_path(path):
     return os.path.join(os.path.dirname(__file__), path)
 
-def current_time_within_business_hours():
+def current_time_within_business_hours(check_working_days_only=False):
     conf = get_config()
     business_starting_hour = conf.get('BUSINESS_DAY_START', '08:00')
     business_finishing_hour = conf.get('BUSINESS_DAY_END', '17:00')
@@ -231,6 +231,9 @@ def current_time_within_business_hours():
     # Check if the current day is within the business week
     if not (week_start <= current_day <= week_end):
         return False
+
+    if check_working_days_only:
+        return True
 
     business_starting_hour = datetime.datetime.strptime(business_starting_hour, "%H:%M").time()
     business_finishing_hour = datetime.datetime.strptime(business_finishing_hour, "%H:%M").time()

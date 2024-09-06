@@ -1,7 +1,8 @@
+import datetime
 import logging
 from graph_generator import generate_graphs_for_daily_report
 from mailer import send_email
-from utils import get_abs_path, get_latest_json_file, get_config
+from utils import current_time_within_business_hours, get_abs_path, get_latest_json_file, get_config
 import os
 import json
 import sys
@@ -23,6 +24,13 @@ def generate_report(site_name, last_n_items=None):
     ping_skipped = conf.get('EXCLUDE_PING_FROM_REPORTING')
     hardware_skipped = conf.get('EXCLUDE_HARDWARE_CHECK_FROM_REPORTING')
     stats_breakdown = ""
+
+    if not current_time_within_business_hours(check_working_days_only=True) and last_n_items is None:
+        logging.info(
+            "Skipping Daily Report: " +
+            f"{str(datetime.datetime.now().strftime('%a'))} outside working week."
+        )
+        return
 
     if ping_skipped and hardware_skipped:
         logging.info("Skipping Daily Report Generation")
