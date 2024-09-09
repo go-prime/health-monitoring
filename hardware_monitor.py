@@ -5,7 +5,7 @@ import time
 import datetime
 
 from hardware_metrics import get_cpu_usage, get_disk_usage, get_load_average, get_ram_usage
-from utils import current_time_within_business_hours, export_to_json_file, get_config, send_warning_email_for_metric, update_alert_file
+from utils import check_load_if_avg_exceeded, current_time_within_business_hours, export_to_json_file, get_config, send_warning_email_for_metric, update_alert_file
 
 
 logging.basicConfig(filename='logs/ping.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -32,12 +32,17 @@ def record_hardware_metrics(output_file):
     results = []
     metric_map = {
         "timestamp": None,
-        "cpu_usage": 0.0,
-        "cpu_usage_exceeded": False,
+        "load_avg_last_10_mins ": 0.0,
+        "load_avg_last_10_mins_exceeded": False,
+        "load_avg_last_10_mins_trigger_count": 0,
         "ram_usage": 0.0,
         "ram_usage_exceeded": False,
+        "ram_usage_last_trigger_time": None,
+        "ram_usage_trigger_count": 0,
         "disk_usage": 0.0,
-        "disk_usage_exceeded": False
+        "disk_usage_exceeded": False,
+        "disk_usage_trigger_count": 0,
+        "disk_usage_last_trigger_time": None,
     }
 
     gb_size = (1024 * 1024 * 1024)
@@ -70,11 +75,11 @@ def record_hardware_metrics(output_file):
     logging.info(f"Recording Hardware record timestamp: {timestamp}")
     metric_map['timestamp'] = timestamp
 
-    # CPU usage
-    cpu_usage_exceeded = cpu_usage.get('cpu_usage', 0.0) > CPU_USAGE_MAX_THRESH_HOLD
-    metric_map['cpu_usage'] = cpu_usage.get('cpu_usage', 0.0)
-    metric_map['cpu_usage_exceeded'] = cpu_usage_exceeded
-    logging.info(f'CPU usage exceeded threshold: {cpu_usage_exceeded} at {cpu_usage.get("cpu_usage")} %.')
+    # load Average
+    load_avg_exceeded , number_of_cores = check_load_if_avg_exceeded(load_avg.get("Last 10 Mins", 0.0))
+    metric_map['load_avg_last_10_mins'] = round(load_avg.get("Last 10 Mins", 0.0) / number_of_cores * 100, 2)
+    metric_map['load_avg_last_10_mins_exceeded'] = load_avg_exceeded
+    logging.info(f'Load usage exceeded threshold: {load_avg_exceeded} at {load_avg.get("Last 10 Mins", 0.0)} .')
 
     # Ram Usage
     ram_usage_exceeded = ram_usage.percent > RAM_USAGE_MAX_THRESH_HOLD
@@ -128,7 +133,7 @@ def evaulate_metric(previous_state, current_state, metric, output_file):
 
 
 def evaluate_hardware_metrics(metric_map, previous_alert_state, output_file):
-    for metric in ["cpu_usage", "disk_usage", "ram_usage"]:
+    for metric in ["ram_usage", "disk_usage", "load_avg_last_10_mins"]:
         evaulate_metric(previous_alert_state, metric_map, metric, output_file)
 
 
@@ -176,10 +181,10 @@ if __name__ == "__main__":
             json.dump([], file)
 
     trigger_defaults = {
-        "cpu_usage": 0.0,
-        "cpu_usage_exceeded": False,
-        "cpu_usage_trigger_count": 0,
-        "cpu_usage_last_trigger_time": None,
+        "load_avg_last_10_mins": 0.0,
+        "load_avg_last_10_mins_exceeded": False,
+        "load_avg_last_10_mins_trigger_count": 0,
+        "load_avg_last_10_mins_last_trigger_time": 0,
         "ram_usage": 0.0,
         "ram_usage_trigger_count": 0,
         "ram_usage_exceeded": False,
