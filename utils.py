@@ -1,4 +1,5 @@
 import json
+import multiprocessing
 import os
 import logging
 import datetime
@@ -253,7 +254,7 @@ def update_alert_file(alertFile, alert_triggered=None, hardware_metrics=None):
         if hardware_metrics:
             logging.info("Updating hardware metrics on alert file.")
             # Update trigger counts and states in a loop to reduce redundancy
-            for metric in ['cpu_usage', 'ram_usage', 'disk_usage']:
+            for metric in ['load_avg_last_10_mins', 'ram_usage', 'disk_usage']:
                 # Logging trigger counts
                 data[f"{metric}_trigger_count"] += 1 if hardware_metrics.get(f'{metric}_exceeded') else 0
                 # Logging time
@@ -306,7 +307,8 @@ def send_warning_email_for_metric(site_name,
     last_hr_trends = generate_graphs_for_daily_report(
         site_name=site_name,
         hardware_source_file=source_file,
-        last_n_items=intervals
+        last_n_items=intervals,
+        scope_by_metric=metric
     )
     
     # Generate and attach graph of last hour worth or records
@@ -320,7 +322,8 @@ def send_warning_email_for_metric(site_name,
     time_scoped_graphic = generate_graphs_for_daily_report(
         site_name=site_name,
         hardware_source_file=source_file,
-        scoped_time_stamp=scoped_time_stamp
+        scoped_time_stamp=scoped_time_stamp,
+        scope_by_metric=metric
     )
     
     if time_scoped_graphic:
@@ -383,3 +386,8 @@ def clear_folder(folder):
 
     for file in os.listdir(folder):
         os.remove(os.path.join(folder, file))
+
+
+def check_load_if_avg_exceeded(load_avg):
+    number_of_cores = multiprocessing.cpu_count()
+    return load_avg > number_of_cores, number_of_cores

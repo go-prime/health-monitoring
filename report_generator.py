@@ -62,9 +62,7 @@ def generate_report(site_name, last_n_items=None):
     ping_avg = stats.get('ping')
     avg_ping = ping_avg.get('status_avg_success') if ping_avg else 0.0
     hardware_avg = stats.get('hardware')
-    disk_use_avg = hardware_avg.get('disk_usage_avg') if hardware_avg else 0.0
     ram_use_avg = hardware_avg.get('ram_usage_avg') if hardware_avg else 0.0
-    cpu_use_avg = hardware_avg.get('cpu_usage_avg') if hardware_avg else 0.0
     load_last_10_mins_avg = hardware_avg.get('load_last_10_mins_avg') if hardware_avg else 0.0
     
     if not ping_skipped:
@@ -72,9 +70,7 @@ def generate_report(site_name, last_n_items=None):
         
     if not hardware_skipped:
         stats_breakdown += (
-            f"Average Disk Usage: {disk_use_avg} %.\n"
             f"Average RAM Usage: {ram_use_avg} %.\n"
-            f"Average CPU Usage: {cpu_use_avg} %.\n"
             f"Load Avg (10 Min): {load_last_10_mins_avg}."
         )
 
