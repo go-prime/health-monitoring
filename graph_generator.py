@@ -231,22 +231,25 @@ def generate_hardware_metrics_trends_graph(site, data, time_scoped_filtered=Fals
     if not scope_by_metric:
         # Plotting Data
         ram_usage_percentages = [entry["ram_usage_percentage"] for entry in data]
-
         load_avg_last_10_mins = [item['load_avg_last_10_mins'] for item in data]
+        cpu_usage = [item['cpu_usage'] for item in data]
 
         # Averages
         ram_usage_avg = statistics.mean([item['ram_usage_percentage'] for item in data])
         load_last_10_mins_avg = statistics.mean([item['load_avg_last_10_mins'] for item in data])
+        cpu_usage_avg = statistics.mean([item['cpu_usage'] for item in data])
 
         hardware_breakdown = {
             'ram_usage_avg': round(ram_usage_avg, 5),
-            'load_last_10_mins_avg': round(load_last_10_mins_avg, 2)
+            'load_last_10_mins_avg': round(load_last_10_mins_avg, 2),
+            'cpu_usage_avg': round(cpu_usage_avg, 2)
         }
 
         ram_trace = go.Scatter(x=timestamps, y=ram_usage_percentages, mode='lines', name='RAM Usage Percentage', yaxis="y1")
+        cpu_trace = go.Scatter(x=timestamps, y=cpu_usage, mode='lines', name='CPU Usage', yaxis="y1")
         load_last_10_mins_trace = go.Scatter(x=timestamps, y=load_avg_last_10_mins, mode='lines', name='Load Avg (10 mins)', yaxis="y2")
 
-        trace_list = [ram_trace, load_last_10_mins_trace]
+        trace_list = [cpu_trace, ram_trace, load_last_10_mins_trace]
     else:
         if scope_by_metric == "ram_usage":
             metric_data = [item.get('ram_usage_percentage', 0.0) for item in data]
