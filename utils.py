@@ -389,5 +389,10 @@ def clear_folder(folder):
 
 
 def check_load_if_avg_exceeded(load_avg):
+    '''
+    Return True if avg is greater than half 
+    the number of cores
+    '''
     number_of_cores = multiprocessing.cpu_count()
-    return load_avg > number_of_cores, number_of_cores
+    half_cores_capacity_breached = load_avg > (number_of_cores / 2)
+    return half_cores_capacity_breached, number_of_cores
