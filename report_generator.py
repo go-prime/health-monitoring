@@ -64,6 +64,7 @@ def generate_report(site_name, last_n_items=None):
     hardware_avg = stats.get('hardware')
     ram_use_avg = hardware_avg.get('ram_usage_avg') if hardware_avg else 0.0
     load_last_10_mins_avg = hardware_avg.get('load_last_10_mins_avg') if hardware_avg else 0.0
+    cpu_usage_avg = hardware_avg.get('cpu_usage_avg') if hardware_avg else 0.0
     
     if not ping_skipped:
         stats_breakdown += f"Average Ping Success: {avg_ping} %.\n"
@@ -71,7 +72,8 @@ def generate_report(site_name, last_n_items=None):
     if not hardware_skipped:
         stats_breakdown += (
             f"Average RAM Usage: {ram_use_avg} %.\n"
-            f"Load Avg (10 Min): {load_last_10_mins_avg}."
+            f"Load Avg (10 Min): {load_last_10_mins_avg}.\n"
+            f"Average CPU Usage: {cpu_usage_avg} %.\n"
         )
 
     subject = f"Daily Report for {site_name}" if not last_n_items else f"Recent Activity Report for {site_name} (Last {last_n_items} Items)."
