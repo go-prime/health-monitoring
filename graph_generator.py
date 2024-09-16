@@ -226,7 +226,8 @@ def generate_hardware_metrics_trends_graph(site, data, time_scoped_filtered=Fals
         os.makedirs(exports_folder)
 
     start = time.mktime((datetime.datetime.now() - datetime.timedelta(hours=8)).timetuple())
-    timestamps = [get_datetime_string_from_timestamp(entry['timestamp']) for entry in data if entry['timestamp'] > start]
+    filtered_data = sorted([entry for entry in data if entry['timestamp'] > start], key=lambda x: x['timestamp'])
+    timestamps = [get_datetime_string_from_timestamp(entry['timestamp']) for entry in filtered_data]
     
     if not scope_by_metric:
         # Plotting Data
@@ -325,7 +326,11 @@ def generate_ping_metrics_trends_graph(site, data):
     for file in os.listdir(exports_folder):
         os.remove(os.path.join(exports_folder, file))
 
-    timestamps = [get_datetime_string_from_timestamp(entry['timestamp']) for entry in data]
+    start = time.mktime((datetime.datetime.now() - datetime.timedelta(hours=8)).timetuple())
+    filtered_data = sorted([entry for entry in data if entry['timestamp'] > start], key=lambda x: x['timestamp'])
+    timestamps = [get_datetime_string_from_timestamp(entry['timestamp']) for entry in filtered_data]
+    
+    
     statuses = [1 if entry['status'] == "success" else 0 for entry in data]
     successful_pings = [item for item in statuses if item == 1] 
     status_avg_success = round((len(successful_pings) / len(statuses)), 3) * 100
