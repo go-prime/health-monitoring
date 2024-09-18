@@ -13,10 +13,11 @@ logging.basicConfig(filename='logs/ping.log', level=logging.INFO, format='%(asct
 
 
 def get_config():
-    if not os.path.exists('config/config.json'):
+    path = get_abs_path('config/config.json')
+    if not os.path.exists(path):
         raise FileNotFoundError("Config file not found")
 
-    with open('config/config.json') as config_file:
+    with open(path) as config_file:
         config = json.load(config_file)
     
     return config
