@@ -213,10 +213,10 @@ def generate_hardware_metrics_trends_graph(site, data, time_scoped_filtered=Fals
     metric_data = []
     
     if time_scoped_filtered:
-        filter_label = f"Filtered By Time: Last 60 minutes."
+        filter_label = f"Filtered By Time: Closer Snapshot View."
     
     if last_n_filtered:
-        filter_label = "Latest Records"
+        filter_label = "Filtered By Time: Last 60 minutes."
 
     hardware_breakdown = {}
     sub_folder = 'hardware_metrics'
