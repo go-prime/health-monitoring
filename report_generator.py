@@ -90,7 +90,7 @@ def generate_report(site_name, last_n_items=None):
     logging.info(f"Subject: {subject}")
     logging.info(f"Body: {body}")
     
-    mailing_list = conf.get('MAILING_LIST') if not last_n_items else conf.get('ADHOC_MAILING_LIST')
+    mailing_list = conf.get('MAILING_LIST')
     
     logging.info(f"Confirmed Mailing List {str(mailing_list)}")
 
