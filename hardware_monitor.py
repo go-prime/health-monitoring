@@ -200,8 +200,10 @@ if __name__ == "__main__":
         # Create file
 
     alert_file = os.path.join(site_alert_folder, f'alert_status_{date_string}.json')
+    logging.info(f'Alert File: {alert_file}')
 
     if not os.path.exists(alert_file):
+        logging.info('Alert file not found. Creating...')
         with open(alert_file, 'w') as file:
             json.dump(trigger_defaults, file, indent=4)
 
