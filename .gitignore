@@ -172,3 +172,4 @@ ping_results*.json
 ping_metrics*.json
 hardware_metrics*.json
 alert_status*.json
+email.log.*
