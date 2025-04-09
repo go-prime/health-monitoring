@@ -105,7 +105,7 @@ def generate_graphic(site_name, metric):
 
         # Update layout
         fig.update_layout(
-            title=f'Ping Success Over Time {site_name}',
+            title=f'Site Availability Over Time {site_name}',
             xaxis_title='Timestamp',
             yaxis_title='Status (1 = success)',
             showlegend=True

@@ -1,16 +1,32 @@
 import logging
+from logging.handlers import RotatingFileHandler
 import smtplib, json, os
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 
 
-mailer_log = 'logs/email.log'
-mailer_log = os.path.join(os.path.dirname(__file__), mailer_log)
+MAX_LOG_SIZE = 10 * 1024 * 1024
+mailer_log = os.path.join(os.path.dirname(__file__), 'logs/email.log')
 conf = 'config/config.json'
 conf = os.path.join(os.path.dirname(__file__), conf)
 
 # Set up logging
+log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+rotating_handler = RotatingFileHandler(
+    mailer_log,
+    maxBytes=MAX_LOG_SIZE,
+    backupCount=5
+)
+rotating_handler.setFormatter(log_formatter)
+
+# Configure the root logger
+logging.basicConfig(
+    level=logging.INFO,
+    handlers=[rotating_handler]
+)
+
 logging.basicConfig(filename=mailer_log, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 if not os.path.exists(conf):
