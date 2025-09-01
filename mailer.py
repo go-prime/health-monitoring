@@ -70,7 +70,7 @@ def send_email(recipients, subject, body, attachments=None):
                 image_data = f.read()
                 image = MIMEImage(image_data, name=os.path.basename(image_path))
                 msg.attach(image)
-        else:
+        # fixielse:
             # logging.warning(f"Image file not found: {image_path}")
 
     with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as smtp:
