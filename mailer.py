@@ -1,33 +1,33 @@
-import logging
-from logging.handlers import RotatingFileHandler
+# import logging
+# from logging.handlers import RotatingFileHandler
 import smtplib, json, os
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 
 
-MAX_LOG_SIZE = 10 * 1024 * 1024
-mailer_log = os.path.join(os.path.dirname(__file__), 'logs/email.log')
+# MAX_LOG_SIZE = 10 * 1024 * 1024
+# mailer_log = os.path.join(os.path.dirname(__file__), 'logs/email.log')
 conf = 'config/config.json'
 conf = os.path.join(os.path.dirname(__file__), conf)
 
-# Set up logging
-log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+# # Set up logging
+# log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
-rotating_handler = RotatingFileHandler(
-    mailer_log,
-    maxBytes=MAX_LOG_SIZE,
-    backupCount=5
-)
-rotating_handler.setFormatter(log_formatter)
+# rotating_handler = RotatingFileHandler(
+#     mailer_log,
+#     maxBytes=MAX_LOG_SIZE,
+#     backupCount=5
+# )
+# rotating_handler.setFormatter(log_formatter)
 
-# Configure the root logger
-logging.basicConfig(
-    level=logging.INFO,
-    handlers=[rotating_handler]
-)
+# # Configure the root logger
+# logging.basicConfig(
+#     level=logging.INFO,
+#     handlers=[rotating_handler]
+# )
 
-logging.basicConfig(filename=mailer_log, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# logging.basicConfig(filename=mailer_log, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 if not os.path.exists(conf):
     raise FileNotFoundError("Config file not found")
@@ -44,15 +44,15 @@ SMTP_SERVER = config.get('SMTP_SERVER', 'smtp.office365.com')
 
 
 if not MAILER_EMAIL or not MAILER_PASSWORD:
-    logging.error("Mailer email or password not provided in config file")
+    # logging.error("Mailer email or password not provided in config file")
     raise ValueError("Mailer email or password not provided in config file")
 
 
 def send_email(recipients, subject, body, attachments=None):
-    logging.info(f"Sending email to {', '.join(recipients)}")
-    logging.info(f"Subject: {subject}")
-    logging.info(f"Body: {body}")
-    logging.info(f"Images Attached No: {len(attachments)}")
+    # logging.info(f"Sending email to {', '.join(recipients)}")
+    # logging.info(f"Subject: {subject}")
+    # logging.info(f"Body: {body}")
+    # logging.info(f"Images Attached No: {len(attachments)}")
     msg = MIMEMultipart()
     msg['From'] = MAILER_EMAIL
     msg['To'] = ', '.join(recipients)
@@ -62,19 +62,19 @@ def send_email(recipients, subject, body, attachments=None):
 
     for image_path in attachments:
         if not image_path:
-            logging.warning("Invalid image path provided")
+            # logging.warning("Invalid image path provided")
             continue
         if os.path.exists(image_path):
-            logging.info("Adding image to email")
+            # logging.info("Adding image to email")
             with open(image_path, 'rb') as f:
                 image_data = f.read()
                 image = MIMEImage(image_data, name=os.path.basename(image_path))
                 msg.attach(image)
         else:
-            logging.warning(f"Image file not found: {image_path}")
+            # logging.warning(f"Image file not found: {image_path}")
 
     with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as smtp:
-        logging.info("Logging in to SMTP server")
+        # logging.info("Logging in to SMTP server")
         smtp.login(MAILER_EMAIL, MAILER_PASSWORD)
         smtp.send_message(msg)
-        logging.info("Email sent successfully")
+        # logging.info("Email sent successfully")
